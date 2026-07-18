@@ -1,5 +1,10 @@
 # Minimal Watch - Changelog
 
+## v0.18
+- Fix: watch menu icon was empty/broken — `app-icon.js` used `Graphics.createArrayBuffer()` with `0x07E0` (16-bit green) in 8bpp mode, which truncated to red (`0xE0`) in RGB332
+- Replaced with standard `require("heatshrink").decompress(atob("..."))` format matching `app.png` exactly
+- Uses 4-bit indexed color with transparency for compact, reliable icon storage
+
 ## v0.07
 - Fix: removed `startTimer()` call from inside `draw()` — was resetting the interval on every draw, preventing auto-update
 - Fix: simplified timer to plain `setInterval(draw, 60000)`, removed setTimeout→setInterval hybrid

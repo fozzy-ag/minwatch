@@ -21,10 +21,11 @@ A minimal, battery-saving watchface for [Bangle.js 2](https://banglejs.com/) sma
 
 ## Installation
 
-### Via App Loader (recommended)
-1. Open [Bangle.js App Loader](https://banglejs.com/apps) in Chrome/Edge/Opera
-2. Search for "Minimal Watch"
-3. Click Install
+### Via Web Loader (recommended)
+1. Open the [Bangle.js App Loader](https://banglejs.com/apps) in Chrome/Edge/Opera
+2. Click **More... → Load app from URL**
+3. Enter: `http://<your-termux-ip>:8080` (requires the included `serve.py` running)
+4. Find "Minimal Watch" and click Install
 
 ### Manual
 1. Connect to Bangle.js via Web IDE or App Loader

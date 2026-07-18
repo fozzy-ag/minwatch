@@ -1,6 +1,6 @@
 # Bangle.js 2 Development Reference
 
-Living document — update as new discoveries are made. Last updated: v0.17 (2026-07-18).
+Living document — update as new discoveries are made. Last updated: v0.18 (2026-07-19).
 
 ---
 
@@ -19,10 +19,11 @@ Living document — update as new discoveries are made. Last updated: v0.17 (202
 ## 2. Graphics API Gotchas
 
 - **`g.reset()`** resets ALL state: font, color, fontAlign, etc. You must re-set everything after calling it
-- **`g.setColor(color)`** uses 16-bit RGB565 format:
+- **`g.setColor(color)`** uses 16-bit RGB565 format on 16bpp graphics, BUT see Section 16 for icon gotcha:
   - `0xF800` = red, `0x07E0` = green, `0x001F` = blue
   - `0xFFFF` = white, `0x0000` = black, `0xC618` = grey (battery bar empty)
   - `0xFE60` = yellow (battery bar low)
+  - **WARNING**: `Graphics.createArrayBuffer(w,h,8)` uses 8bpp RGB332, NOT 16-bit. Values like `0x07E0` get truncated to `0xE0` which is red in RGB332, not green. Use correct 8bpp values or use 16bpp buffers.
 - **`g.fillRect(x1, y1, x2, y2)`** — coords are inclusive corners, not width/height
 - **`g.clearRect()`** may not use background color — use `g.setColor(0xFFFF); g.fillRect(...)` for reliable fill
 - **`g.drawString(text, x, y, true)`** — 4th param `true` draws a solid background behind text (prevents bleed-through from previous draws)
@@ -233,24 +234,82 @@ for (let i = 0; i < 10; i++) {
 minwatch/
   app.js            Main watchface code
   metadata.json     App metadata (version, dependencies, storage mapping)
-  app-icon.js       JS-evaluated icon (for BangleApps)
-  app.png           48×48 PNG icon (for App Loader preview)
+  app-icon.js       Icon — MUST use heatshrink-compressed format (see below)
+  app.png           48×48 PNG icon (for App Loader preview on web)
   ChangeLog         BangleApps-format changelog (newest first, NO extension)
   CHANGELOG.md      Human-readable changelog (optional, for repo)
 ```
 
+### App Icon Format — CRITICAL
+The icon stored on the watch (`minwatch.img`) must be in **heatshrink-compressed binary format**. This is the standard used by every app in BangleApps:
+
+```js
+require("heatshrink").decompress(atob("mEwghC/AFeg...base64data..."))
+```
+
+**DO NOT** use `Graphics.createArrayBuffer()` + `g.asImage()`:
+- 8bpp buffers (`createArrayBuffer(48,48,8)`) use RGB332 palette, NOT RGB565
+- `setColor(0x07E0)` truncates to `0xE0` = **bright red**, not green
+- This produces a broken/empty icon in the watch menu
+- Minwatch was the only app in BangleApps using this pattern — it never worked correctly
+
+**How to generate**: Use the BangleApps `webtools/imageconverter.js`:
+```js
+const imageconverter = require("BangleApps/webtools/imageconverter.js");
+const heatshrink = require("BangleApps/webtools/heatshrink.js");
+imageconverter.setHeatShrink(heatshrink);
+const result = imageconverter.RGBAtoString(rgbaData, {
+  width: 48, height: 48,
+  mode: "4bit", transparent: true, compression: true, output: "string"
+});
+// result = 'require("heatshrink").decompress(atob("..."))'
+```
+
+**metadata.json storage entry** for the icon:
+```json
+{"name": "minwatch.img", "url": "app-icon.js", "evaluate": true}
+```
+The `evaluate: true` flag tells the App Loader to execute the JS on the watch and store the return value.
+
+### apps.json Is a Jekyll Template — NOT Valid JSON
+The upstream BangleApps repo's `apps.json` is a **Liquid/Jekyll template**, not parseable JSON:
+```
+---
+{%- include_relative {{ apps.first }} -%}
+...
+---
+```
+**You CANNOT serve this directly.** Generate proper JSON by running:
+```bash
+cd BangleApps
+bash bin/create_apps_json.sh           # generates apps.json
+bash bin/create_apps_json.sh apps.local.json  # generates apps.local.json
+```
+This concatenates all `apps/*/metadata.json` files into a single JSON array.
+
 ### Version Sync — CRITICAL
 Version must match across ALL of these files:
 1. `metadata.json` → `"version": "X.YZ"`
-2. `apps.json` → entry for the app id
-3. **`apps.local.json`** → entry for the app id — **THIS is what the App Loader actually reads**
+2. `apps.json` → generated from metadata.json files (run `create_apps_json.sh`)
+3. **`apps.local.json`** → generated from metadata.json files — **THIS is what the App Loader actually reads**
 
 ### `apps.local.json` vs `apps.json`
 - `loader.js` line 10: `Const.APPS_JSON_FILE = "apps.local.json";`
 - The App Loader reads **`apps.local.json`**, NOT `apps.json`
-- When regenerating with `generate.js`, it overwrites `apps.json` but may NOT touch `apps.local.json`
-- **You must update `apps.local.json` separately**, or the App Loader shows stale version
+- Running `create_apps_json.sh` without args generates both files
+- **You must regenerate after ANY metadata.json change**, or the App Loader shows stale version
 - Closing and reopening the browser tab may still be needed (JS memory cache persists even with no-cache headers)
+
+### Dependency Format in metadata.json
+The key is the **app/module name**, the value is the **type**:
+```json
+"dependencies": {
+  "owmweather": "app"
+}
+```
+**NOT** `"app": "owmweather"` — that causes: `"Dependency type 'owmweather' not supported"`
+
+Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 
 ### ChangeLog Format
 ```
@@ -263,17 +322,30 @@ Version must match across ALL of these files:
 - No file extension
 - Clicking the version number in the App Loader opens this file
 
-### HTTP Server for Testing
-- Serve from BangleApps root directory
-- Must set no-cache headers: `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+### Local HTTP Server for Testing
+- **Must serve from BangleApps root directory** — the App Loader UI (index.html, loader.js) lives there
+- **Must set no-cache headers**: `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+- Serve on `0.0.0.0:8080` to allow phone access over WiFi
+- Access from phone: `http://<termux-ip>:8080` (not `localhost`)
 - Browser JS cache persists even with no-cache headers — **close tab and reopen** to see changes
 - Python example: `serve.py` in app directory
 
+### Submitting to Official App Loader
+1. Fork `espruino/BangleApps` on GitHub
+2. Create branch from `upstream/master`
+3. Copy app files to `apps/<appid>/`
+4. Run `bash bin/create_apps_json.sh apps.local.json` to verify
+5. Commit only app files (NOT apps.json — it's auto-generated by GitHub Pages)
+6. Push branch, open PR to `espruino/BangleApps:master`
+7. Token needs `repo` + `workflow` scopes for push (workflow files in .github/)
+
 ## 17. Dependencies
 
-- **owmweather** (for weather data) — listed in metadata.json `"dependencies"`
+- **Format**: `"appname": "type"` in metadata.json (NOT `"type": "appname"`)
+- **owmweather** (for weather data) — `"owmweather": "app"`
 - **No other external dependencies** — all other APIs are built into Bangle.js firmware
 - Weather gracefully degrades: if owmweather not installed, weather section is simply not drawn
+- Valid types: `"app"` (installed app), `"module"` (JS module), `"widget"`, `"type"`
 
 ## 18. Power Saving Checklist
 

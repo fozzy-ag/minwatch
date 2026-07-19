@@ -164,12 +164,12 @@
   }});
   g.reset();
   g.clearRect(Bangle.appRect);
+  Bangle.loadWidgets();
+  setTimeout(Bangle.drawWidgets, 0);
   appTop = Bangle.appRect.y;
   appH = Bangle.appRect.h;
   th = g.setFont("6x8", 4).getFontHeight();
   sh = g.setFont("6x8", 2).getFontHeight();
-  Bangle.loadWidgets();
-  setTimeout(Bangle.drawWidgets, 0);
   if (Bangle.isCharging) charging = Bangle.isCharging();
   draw();
 }

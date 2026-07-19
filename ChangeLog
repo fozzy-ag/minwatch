@@ -1,3 +1,4 @@
+0.24.1: Fixed v0.24 regression — moved appRect/font height caching after Bangle.loadWidgets() (loadWidgets may modify appRect, causing stale cached values)
 0.24: Code review optimizations — cached appRect/font heights at init, removed inner try/catch blocks, moved g.reset() before try, deferred drawWidgets with setTimeout (antonclk pattern)
 0.23: Code review fixes — removeAllListeners→removeListener (stopped nuking system listeners), fixed charging listener leak on reload, var→let (proper block scoping), fixed week number cache key across months, clamp queueDraw timeout to min 1ms
 0.22: Removed eval/RAM loading (counterproductive), removed setPollInterval (firmware auto-throttles), fixed charging icon crash safety

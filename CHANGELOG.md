@@ -1,5 +1,10 @@
 # Minimal Watch - Changelog
 
+## v0.24.1
+- Fixed v0.24 regression: only time and date were displayed — CW, battery, weather, steps were off-screen
+- Root cause: `Bangle.appRect` was cached before `Bangle.loadWidgets()`, which may modify `appRect`. Cached values were stale, shifting all elements below date off-screen
+- Fix: moved all init-time caching (appRect, font heights) after `Bangle.loadWidgets()` and `setTimeout(Bangle.drawWidgets, 0)`
+
 ## v0.24
 - Cached `Bangle.appRect` (appTop, appH) at init instead of per-draw — removes 2 property lookups + 2 ternary checks per draw
 - Cached font heights (th, sh) at init instead of per-draw — removes 2× `g.setFont()` + 2× `g.getFontHeight()` per draw

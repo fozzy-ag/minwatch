@@ -1,6 +1,6 @@
 # Bangle.js 2 Development Reference
 
-Living document — update as new discoveries are made. Last updated: v0.18 (2026-07-19).
+Living document — update as new discoveries are made. Last updated: v0.19 (2026-07-19).
 
 ---
 
@@ -226,6 +226,72 @@ for (let i = 0; i < 10; i++) {
 - **Remove unused variables** — reduces memory footprint
 - **Cache `W >> 1` as `cx`** — single variable instead of repeated bit shifts
 - **Week number only changes once per day** — cache by date, skip calculation if same day
+- **Cache font heights at init** — `g.setFont()` + `getFontHeight()` is expensive; measure once, store in variables
+- **Cache static values at init**: `W`, `H`, `cx`, `appTop`, `appH`, `gap`, `bh` — never recalculate in draw()
+
+### Partial Redraw Pattern (v0.19)
+The single biggest battery drain is **clearing and redrawing the entire screen every 60 seconds**. The optimized approach:
+
+1. **Track last-drawn values** — only redraw when the value actually changed
+2. **Clear only the affected region** — `g.fillRect()` behind the changed element, not the full 176×176 screen
+3. **Skip `g.reset()`** — it resets all graphics state and is expensive; set state explicitly once at init
+
+```js
+var lastTimeStr = "";
+var lastDay = -1;
+var lastBattery = -1;
+var lastSteps = -1;
+
+function draw() {
+  var date = new Date();
+  var timeStr = lc.time(date, 1);
+
+  g.setFontAlign(0, -1);
+  g.setColor(0);
+
+  // Only redraw time if it changed
+  if (timeStr !== lastTimeStr) {
+    g.setFont("6x8", 4);
+    g.setColor(0xFFFF); g.fillRect(0, y-1, W, y+th+1);  // clear only this line
+    g.setColor(0);
+    g.drawString(timeStr, cx, y, true);
+    lastTimeStr = timeStr;
+  }
+  y += th + gap;
+
+  // Only redraw date/CW if day changed
+  if (day !== lastDay) {
+    // ... redraw date and CW ...
+    lastDay = day;
+  } else {
+    y += sh + gap;  // skip past unchanged sections
+    y += sh + gap;
+  }
+
+  // Only redraw battery if percentage changed
+  var filled = Math.round(E.getBattery() / 10);
+  if (filled !== lastBattery) {
+    // ... clear and redraw bar ...
+    lastBattery = filled;
+  }
+}
+```
+
+**Redraw frequency by element**:
+| Element | Redraw trigger | Cost |
+|---------|---------------|------|
+| Time | Every minute (string change) | Medium — only 1 line |
+| Date/CW | Once per day | Zero after first draw |
+| Battery | When % changes (rarely) | Zero most draws |
+| Weather | When temp string changes | Zero most draws |
+| Steps | When count changes | Low — usually changes often |
+| Charging | Event-driven only | Zero overhead |
+
+**What NOT to do**:
+- `g.reset()` on every draw — resets all state, expensive
+- `g.fillRect(0, appTop, W, H)` on every draw — clears 176×152 pixels for nothing
+- `g.setFont("6x8", 4); g.setFont("6x8", 2)` on every draw — cache font heights, set font only when switching
+- Per-section try/catch when sections don't throw — consolidate into outer catch
 
 ## 16. App Loader & Distribution
 
@@ -359,6 +425,11 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 8. Short/efficient locale format (`1` parameter)
 9. Event-driven state detection (charging) instead of polling
 10. Draw overlays (charging icon) outside main try/catch so they always render
+11. **Partial redraws** — track last values, only clear+redraw changed elements (v0.19)
+12. **Never `g.reset()` in draw()** — it's expensive and resets all state; set state explicitly
+13. **Never full-screen clear per draw** — clear only the region behind the changed element
+14. **Cache font heights at init** — don't call `g.setFont()`/`getFontHeight()` per draw
+15. **Cache static geometry** — `W`, `H`, `cx`, `appTop`, `appH`, `gap` at init, never recalculate
 
 ---
 

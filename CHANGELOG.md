@@ -1,5 +1,32 @@
 # Minimal Watch - Changelog
 
+## v0.21
+- Split into loader (`app.js`) + main code (`main.js`) — main code loaded into RAM via eval to avoid SPI flash contention during draws
+- `setTimeout` aligned to minute boundary instead of `setInterval` — redraws at :00 seconds, avoids drift
+- `g.clearRect(Bangle.appRect)` instead of `g.fillRect()` — clears only app area, less SPI traffic
+- `Bangle.setPollInterval(800)` — drops accelerometer from 12.5Hz to 1.25Hz, saves ~0.15mA
+- HRM disabled, locale cached, weather cached with 5-min TTL
+
+## v0.20
+- Restored working v0.18 draw logic — v0.19 partial redraws had multiple bugs:
+  - Extra `y += sh + gap` in else branch pushed battery/weather/steps off-screen on subsequent draws
+  - Font scale 4 used for date stringWidth checks (should be scale 2)
+  - No `g.reset()` caused font/color state to persist unpredictably between draws
+- Kept safe optimizations: cached W, H, cx, gap, bh at init (not per-draw)
+- Changed `drawWeatherIcon` params from `cx,cy` to `ox,oy` to avoid shadowing global `cx`
+
+## v0.19
+- Battery optimization: only redraw elements that actually changed
+- Removed `g.reset()` and full-screen `g.fillRect` on every draw — was clearing 176×176 pixels every 60s
+- Cached font heights at init instead of calling `g.setFont()`/`getFontHeight()` per-draw
+- Time: redrawn every minute (only region behind text)
+- Date/CW: redrawn once per day change
+- Battery bar: only redraws when percentage changes
+- Weather: only redraws when temperature string changes
+- Steps: only redraws when count changes
+- Removed per-section try/catch overhead — consolidated into single outer catch
+- Font state set once at init, not reset per-draw
+
 ## v0.18
 - Fix: watch menu icon was empty/broken — `app-icon.js` used `Graphics.createArrayBuffer()` with `0x07E0` (16-bit green) in 8bpp mode, which truncated to red (`0xE0`) in RGB332
 - Replaced with standard `require("heatshrink").decompress(atob("..."))` format matching `app.png` exactly

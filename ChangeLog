@@ -1,3 +1,6 @@
+0.21: Battery optimizations — RAM loading, setTimeout aligned to minute, clearRect, accel throttling
+0.20: Restored working v0.18 draw logic — v0.19 partial redraws broke display on subsequent draws
+0.19: Battery optimization — partial redraws, removed full-screen clear, cached font metrics
 0.18: Fixed watch menu icon — replaced broken 8bpp Graphics icon with heatshrink-compressed 4bit image
 0.17: Code review cleanup, cached weather/week, fixed alignment bug, improved date fallback
 0.16: Centered weather icon+temp group horizontally

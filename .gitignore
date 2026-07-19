@@ -2,3 +2,6 @@ ShareTechMono.ttf
 preview.html
 screenshot_*.png
 server.log
+apps.json
+apps.local.json
+render_screenshot.py

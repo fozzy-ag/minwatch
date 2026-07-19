@@ -15,6 +15,7 @@
   let cx = W >> 1;
   let gap = 8;
   let bh = 7;
+  let appTop, appH, th, sh;
 
   function queueDraw() {
     if (drawTimeout) clearTimeout(drawTimeout);
@@ -112,65 +113,43 @@
   }
 
   function draw() {
+    g.reset();
+    g.clearRect(Bangle.appRect);
     try {
-      let appTop = Bangle.appRect ? Bangle.appRect.y : 24;
-      let appH = Bangle.appRect ? Bangle.appRect.h : H - 24;
       let date = new Date();
-
       let w = getWeather();
       let hasWeather = w !== null;
-
-      let th = g.setFont("6x8", 4).getFontHeight();
-      let sh = g.setFont("6x8", 2).getFontHeight();
       let totalH = th + sh + sh + bh + (hasWeather ? sh + 8 : 0) + sh + gap * 5;
       let y = appTop + (appH - totalH) / 2 + 16;
-
-      g.reset();
-      g.clearRect(Bangle.appRect);
       g.setFontAlign(0, -1);
       g.setColor(0);
 
-      try {
-        g.setFont("6x8", 4);
-        g.drawString(lc.time(date, 1), cx, y, true);
-        y += th + gap;
-      } catch(e) {}
+      g.setFont("6x8", 4);
+      g.drawString(lc.time(date, 1), cx, y, true);
+      y += th + gap;
 
-      try {
-        g.setFont("6x8", 2);
-        let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
-        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
-        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
-        g.drawString(dateStr, cx, y, true);
-        y += sh + gap;
-      } catch(e) {}
+      g.setFont("6x8", 2);
+      let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
+      if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
+      if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
+      g.drawString(dateStr, cx, y, true);
+      y += sh + gap;
 
-      try {
-        g.drawString("CW " + getWeekNumber(date), cx, y, true);
-        y += sh + gap;
-      } catch(e) {}
+      g.drawString("CW " + getWeekNumber(date), cx, y, true);
+      y += sh + gap;
 
-      try {
-        drawBatteryBar(y);
-        y += bh + gap;
-      } catch(e) {}
+      drawBatteryBar(y);
+      y += bh + gap;
 
-      try {
-        if (hasWeather) {
-          drawWeatherIcon(cx - 24, y + 8, w.code);
-          g.setFontAlign(-1, -1);
-          g.drawString(Math.round(w.temp - 273.15) + "\u00B0C", cx - 11, y, true);
-          g.setFontAlign(0, -1);
-          y += sh + gap;
-        }
-      } catch(e) {
+      if (hasWeather) {
+        drawWeatherIcon(cx - 24, y + 8, w.code);
+        g.setFontAlign(-1, -1);
+        g.drawString(Math.round(w.temp - 273.15) + "\u00B0C", cx - 11, y, true);
         g.setFontAlign(0, -1);
+        y += sh + gap;
       }
 
-      try {
-        g.drawString(Bangle.getStepCount() + " steps", cx, y, true);
-      } catch(e) {}
-
+      g.drawString(Bangle.getStepCount() + " steps", cx, y, true);
     } catch(e) {}
     try { drawChargingIcon(); } catch(e) {}
     queueDraw();
@@ -185,8 +164,12 @@
   }});
   g.reset();
   g.clearRect(Bangle.appRect);
+  appTop = Bangle.appRect.y;
+  appH = Bangle.appRect.h;
+  th = g.setFont("6x8", 4).getFontHeight();
+  sh = g.setFont("6x8", 2).getFontHeight();
   Bangle.loadWidgets();
-  Bangle.drawWidgets();
+  setTimeout(Bangle.drawWidgets, 0);
   if (Bangle.isCharging) charging = Bangle.isCharging();
   draw();
 }

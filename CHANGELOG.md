@@ -1,5 +1,12 @@
 # Minimal Watch - Changelog
 
+## v0.22
+- Reverted eval/RAM loading — was counterproductive (extra flash read + re-compilation on every app load)
+- Removed `Bangle.setPollInterval(800)` — firmware already auto-throttles accelerometer after ~120s idle, manual override may interfere with step counting
+- Moved `drawChargingIcon()` inside try/catch — prevents watchface freeze if charging icon throws
+- Used `g.reset()` before `clearRect` in init — ensures correct background color
+- Kept: `setTimeout` aligned to minute boundary, `g.clearRect(Bangle.appRect)`
+
 ## v0.21
 - Split into loader (`app.js`) + main code (`main.js`) — main code loaded into RAM via eval to avoid SPI flash contention during draws
 - `setTimeout` aligned to minute boundary instead of `setInterval` — redraws at :00 seconds, avoids drift

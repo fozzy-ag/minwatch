@@ -1,5 +1,13 @@
 # Minimal Watch - Changelog
 
+## v0.23
+- **CRITICAL**: `removeAllListeners('charging')` nukes ALL system listeners — replaced with `Bangle.removeListener` using stored handler reference
+- Fixed charging listener leak — accumulates on every app re-entry without `removeListener` in `remove` callback
+- Fixed `var` in block scope `{...}` leaking to global — replaced with `let` for proper block scoping
+- Fixed `getWeekNumber` cache keyed on day-of-month — now keyed on year-month-day, doesn't break across month boundaries
+- Fixed `queueDraw` timeout can be 0ms on exact minute boundary — clamped to minimum 1ms to prevent double-draw
+- Wrapped `drawChargingIcon()` in try/catch inside charging event handler — prevents crash from corrupting state
+
 ## v0.22
 - Reverted eval/RAM loading — was counterproductive (extra flash read + re-compilation on every app load)
 - Removed `Bangle.setPollInterval(800)` — firmware already auto-throttles accelerometer after ~120s idle, manual override may interfere with step counting

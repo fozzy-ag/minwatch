@@ -1,43 +1,47 @@
 {
   let drawTimeout;
-  var charging = false;
-  var lc = require("locale");
-  var cachedWeather = null;
-  var cachedWeatherTime = 0;
-  var cachedWeekNum = -1;
-  var cachedWeekDay = -1;
+  let charging = false;
+  let onCharging = function(c) {
+    try { charging = c; drawChargingIcon(); } catch(e) {}
+  };
+  let lc = require("locale");
+  let storage = require("Storage");
+  let cachedWeather = null;
+  let cachedWeatherTime = 0;
+  let cachedWeekNum = -1;
+  let cachedWeekKey = "";
 
-  var W = g.getWidth(), H = g.getHeight();
-  var cx = W >> 1;
-  var gap = 8;
-  var bh = 7;
+  let W = g.getWidth(), H = g.getHeight();
+  let cx = W >> 1;
+  let gap = 8;
+  let bh = 7;
 
   function queueDraw() {
     if (drawTimeout) clearTimeout(drawTimeout);
     drawTimeout = setTimeout(function() {
       drawTimeout = undefined;
       draw();
-    }, 60000 - (Date.now() % 60000));
+    }, Math.max(1, 60000 - (Date.now() % 60000)));
   }
 
   function getWeekNumber(d) {
-    var day = d.getDate();
-    if (day === cachedWeekDay) return cachedWeekNum;
-    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    var dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    cachedWeekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    cachedWeekDay = day;
+    let key = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+    if (key === cachedWeekKey) return cachedWeekNum;
+    let ud = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    let dayNum = ud.getUTCDay() || 7;
+    ud.setUTCDate(ud.getUTCDate() + 4 - dayNum);
+    let yearStart = new Date(Date.UTC(ud.getUTCFullYear(), 0, 1));
+    cachedWeekNum = Math.ceil((((ud - yearStart) / 86400000) + 1) / 7);
+    cachedWeekKey = key;
     return cachedWeekNum;
   }
 
   function getWeather() {
-    var now = Date.now();
+    let now = Date.now();
     if (cachedWeather !== null && now - cachedWeatherTime < 300000) return cachedWeather;
-    var wd = null;
-    try { wd = require("Storage").readJSON("weather.json"); } catch(e) {}
-    var w = wd && wd.weather ? wd.weather : null;
+    let wd = null;
+    try { wd = storage.readJSON("weather.json"); } catch(e) {}
+    let w = wd && wd.weather ? wd.weather : null;
     cachedWeather = w && w.temp !== undefined ? w : null;
     cachedWeatherTime = now;
     return cachedWeather;
@@ -48,8 +52,8 @@
     g.setColor(0);
     if (code === 800) {
       g.fillCircle(ox, oy, 4);
-      for (var i = 0; i < 8; i++) {
-        var a = i * 0.785;
+      for (let i = 0; i < 8; i++) {
+        let a = i * 0.785;
         g.drawLine(ox + Math.cos(a) * 6, oy + Math.sin(a) * 6,
                    ox + Math.cos(a) * 8, oy + Math.sin(a) * 8);
       }
@@ -87,16 +91,16 @@
   }
 
   function drawBatteryBar(y) {
-    var filled = Math.round(E.getBattery() / 10);
-    for (var i = 0; i < 10; i++) {
+    let filled = Math.round(E.getBattery() / 10);
+    for (let i = 0; i < 10; i++) {
       g.setColor(i < filled ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618);
-      var x = cx - 59 + i * 12;
+      let x = cx - 59 + i * 12;
       g.fillRect(x, y, x + 9, y + 6);
     }
   }
 
   function drawChargingIcon() {
-    var cx2 = W - 12, cy2 = 166;
+    let cx2 = W - 12, cy2 = 166;
     g.setColor(0xFFFF);
     g.fillRect(W - 22, 158, W, 175);
     if (charging) {
@@ -109,17 +113,17 @@
 
   function draw() {
     try {
-      var appTop = Bangle.appRect ? Bangle.appRect.y : 24;
-      var appH = Bangle.appRect ? Bangle.appRect.h : H - 24;
-      var date = new Date();
+      let appTop = Bangle.appRect ? Bangle.appRect.y : 24;
+      let appH = Bangle.appRect ? Bangle.appRect.h : H - 24;
+      let date = new Date();
 
-      var w = getWeather();
-      var hasWeather = w !== null;
+      let w = getWeather();
+      let hasWeather = w !== null;
 
-      var th = g.setFont("6x8", 4).getFontHeight();
-      var sh = g.setFont("6x8", 2).getFontHeight();
-      var totalH = th + sh + sh + bh + (hasWeather ? sh + 8 : 0) + sh + gap * 5;
-      var y = appTop + (appH - totalH) / 2 + 16;
+      let th = g.setFont("6x8", 4).getFontHeight();
+      let sh = g.setFont("6x8", 2).getFontHeight();
+      let totalH = th + sh + sh + bh + (hasWeather ? sh + 8 : 0) + sh + gap * 5;
+      let y = appTop + (appH - totalH) / 2 + 16;
 
       g.reset();
       g.clearRect(Bangle.appRect);
@@ -134,7 +138,7 @@
 
       try {
         g.setFont("6x8", 2);
-        var dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
+        let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
         if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
         if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
         g.drawString(dateStr, cx, y, true);
@@ -173,16 +177,11 @@
   }
 
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
-  if (Bangle.on) {
-    Bangle.on('charging', function(c) {
-      charging = c;
-      drawChargingIcon();
-    });
-  }
+  if (Bangle.on) Bangle.on('charging', onCharging);
 
   Bangle.setUI({mode:"clock", remove:function() {
     if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
-    if (Bangle.removeAllListeners) Bangle.removeAllListeners('charging');
+    if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
   }});
   g.reset();
   g.clearRect(Bangle.appRect);

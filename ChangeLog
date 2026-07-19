@@ -1,3 +1,4 @@
+0.23: Code review fixes — removeAllListeners→removeListener (stopped nuking system listeners), fixed charging listener leak on reload, var→let (proper block scoping), fixed week number cache key across months, clamp queueDraw timeout to min 1ms
 0.22: Removed eval/RAM loading (counterproductive), removed setPollInterval (firmware auto-throttles), fixed charging icon crash safety
 0.21: Battery optimizations — RAM loading, setTimeout aligned to minute, clearRect, accel throttling
 0.20: Restored working v0.18 draw logic — v0.19 partial redraws broke display on subsequent draws

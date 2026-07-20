@@ -1,5 +1,15 @@
 # Minimal Watch - Changelog
 
+## v0.26
+- Power optimization: replaced `g.clearRect(Bangle.appRect)` with content-area-only clear (`g.clearRect(0, appTop+16, W-1, H-1)`)
+- Saves ~10.5% SPI pixel writes per draw (23,936 vs 26,752 pixels) — the dominant power cost on MIP display
+- Clear area covers all possible content positions (with/without weather) while skipping unused upper region
+- Charging icon unaffected — draws its own white background independently
+
+## v0.25
+- Reverted draw() to v0.23 proven structure — fresh per-draw computation of appTop/appH/th/sh, per-element try/catch for fault isolation, g.reset() inside try after layout calc
+- Kept init improvements from v0.24: deferred drawWidgets with setTimeout, removeListener (not removeAllListeners)
+
 ## v0.24.1
 - Fixed v0.24 regression: only time and date were displayed — CW, battery, weather, steps were off-screen
 - Root cause: `Bangle.appRect` was cached before `Bangle.loadWidgets()`, which may modify `appRect`. Cached values were stale, shifting all elements below date off-screen

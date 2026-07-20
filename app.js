@@ -123,7 +123,7 @@
       let totalH = th + sh + sh + bh + (hasWeather ? sh + 8 : 0) + sh + gap * 5;
       let y = appTop + (appH - totalH) / 2 + 16;
       g.reset();
-      g.clearRect(Bangle.appRect);
+      g.clearRect(0, appTop + 16, W - 1, H - 1);
       g.setFontAlign(0, -1);
       g.setColor(0);
       try { g.setFont("6x8", 4); g.drawString(lc.time(date, 1), cx, y, true); y += th + gap; } catch(e) {}

@@ -1,3 +1,4 @@
+0.27: Per-element clear + selective redraw — no full-screen clear unless layout shifts (weather appear/disappear). Saves ~65% SPI pixels on typical minute
 0.26: Power optimization — content-area-only clear (saves ~10.5% SPI pixels vs full Bangle.appRect clear)
 0.25: Reverted draw() to v0.23 proven structure — fresh per-draw computation of appTop/appH/th/sh, per-element try/catch for fault isolation, g.reset() inside try after layout calc; kept init improvements (deferred drawWidgets, listener cleanup)
 0.24.1: Fixed v0.24 regression — moved appRect/font height caching after Bangle.loadWidgets() (loadWidgets may modify appRect, causing stale cached values)

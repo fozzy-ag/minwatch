@@ -10,6 +10,12 @@
   let cachedWeatherTime = 0;
   let cachedWeekNum = -1;
   let cachedWeekKey = "";
+  let prevTimeStr = "";
+  let prevDateStr = "";
+  let prevCW = -1;
+  let prevBat = -1;
+  let prevSteps = -1;
+  let prevHadWeather = false;
 
   let W = g.getWidth(), H = g.getHeight();
   let cx = W >> 1;
@@ -122,24 +128,74 @@
       let sh = g.setFont("6x8", 2).getFontHeight();
       let totalH = th + sh + sh + bh + (hasWeather ? sh + 8 : 0) + sh + gap * 5;
       let y = appTop + (appH - totalH) / 2 + 16;
+      let layoutChanged = hasWeather !== prevHadWeather;
       g.reset();
-      g.clearRect(0, appTop + 16, W - 1, H - 1);
       g.setFontAlign(0, -1);
       g.setColor(0);
-      try { g.setFont("6x8", 4); g.drawString(lc.time(date, 1), cx, y, true); y += th + gap; } catch(e) {}
-      try { g.setFont("6x8", 2); let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1); if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1); if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1); g.drawString(dateStr, cx, y, true); y += sh + gap; } catch(e) {}
-      try { g.setFont("6x8", 2); g.drawString("CW " + getWeekNumber(date), cx, y, true); y += sh + gap; } catch(e) {}
-      try { drawBatteryBar(y); y += bh + gap; } catch(e) {}
+      if (layoutChanged) g.clearRect(0, appTop + 16, W - 1, H - 1);
+      try {
+        g.setFont("6x8", 4);
+        let ts = lc.time(date, 1);
+        if (layoutChanged || ts !== prevTimeStr) {
+          if (!layoutChanged) g.clearRect(0, y, W - 1, y + th - 1);
+          g.drawString(ts, cx, y, true);
+          prevTimeStr = ts;
+        }
+        y += th + gap;
+      } catch(e) {}
+      try {
+        g.setFont("6x8", 2);
+        let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
+        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
+        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
+        if (layoutChanged || dateStr !== prevDateStr) {
+          if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
+          g.drawString(dateStr, cx, y, true);
+          prevDateStr = dateStr;
+        }
+        y += sh + gap;
+      } catch(e) { g.setFontAlign(0, -1); }
+      try {
+        g.setFont("6x8", 2);
+        let cw = getWeekNumber(date);
+        if (layoutChanged || cw !== prevCW) {
+          if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
+          g.drawString("CW " + cw, cx, y, true);
+          prevCW = cw;
+        }
+        y += sh + gap;
+      } catch(e) { g.setFontAlign(0, -1); }
+      try {
+        let bat = Math.round(E.getBattery() / 10);
+        if (layoutChanged || bat !== prevBat) {
+          if (!layoutChanged) g.clearRect(cx - 59, y, cx + 60, y + bh - 1);
+          drawBatteryBar(y);
+          prevBat = bat;
+        }
+        y += bh + gap;
+      } catch(e) {}
       try {
         if (hasWeather) {
+          if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh + 7);
           drawWeatherIcon(cx - 24, y + 8, w.code);
           g.setFontAlign(-1, -1);
+          g.setFont("6x8", 2);
           g.drawString(Math.round(w.temp - 273.15) + "\u00B0C", cx - 11, y, true);
           g.setFontAlign(0, -1);
           y += sh + gap;
         }
       } catch(e) { g.setFontAlign(0, -1); }
-      try { g.setFont("6x8", 2); g.drawString(Bangle.getStepCount() + " steps", cx, y, true); } catch(e) {}
+      try {
+        g.setFont("6x8", 2);
+        let sc = Bangle.getStepCount();
+        let ss = sc + " steps";
+        if (layoutChanged || sc !== prevSteps) {
+          if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
+          g.drawString(ss, cx, y, true);
+          prevSteps = sc;
+        }
+      } catch(e) {}
+      prevHadWeather = hasWeather;
     } catch(e) {}
     try { drawChargingIcon(); } catch(e) {}
     queueDraw();

@@ -1,5 +1,12 @@
 # Minimal Watch - Changelog
 
+## v0.27
+- Per-element clear + selective redraw: only clears and redraws elements whose content actually changed
+- Full content-area clear only happens when layout shifts (weather appear/disappear) — rare event
+- Saves ~65% SPI pixel writes on typical minute: only time+steps regions cleared (8,448px) vs full content area (23,936px)
+- Date, CW, battery bar, weather skipped when unchanged — MIP display retains their pixels with zero power
+- Added state tracking: `prevTimeStr`, `prevDateStr`, `prevCW`, `prevBat`, `prevSteps`, `prevHadWeather`
+
 ## v0.26
 - Power optimization: replaced `g.clearRect(Bangle.appRect)` with content-area-only clear (`g.clearRect(0, appTop+16, W-1, H-1)`)
 - Saves ~10.5% SPI pixel writes per draw (23,936 vs 26,752 pixels) — the dominant power cost on MIP display

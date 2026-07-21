@@ -413,7 +413,51 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 - Weather gracefully degrades: if owmweather not installed, weather section is simply not drawn
 - Valid types: `"app"` (installed app), `"module"` (JS module), `"widget"`, `"type"`
 
-## 18. Power Saving Checklist
+## 18. Apps vs Widgets — Key Differences
+
+### Apps (Clocks, Launchers, etc.)
+- **metadata.json type**: `"clock"` or `"launcher"` (or omit for general apps)
+- **Storage name**: `<appid>.app.js` (e.g., `minwatch.app.js`)
+- **Loaded**: On demand when user selects from launcher
+- **Lifecycle**: `Bangle.setUI({mode:"clock", remove:function(){...}})` — handles screen on/off, button press
+- **Can use**: `setInterval`, `setTimeout`, event handlers, full screen area
+- **Can depend on**: Any app/module
+- **Example**: `minwatch` — a clock app that uses full screen (176×176 minus widget bar)
+
+### Widgets (Small persistent UI elements)
+- **metadata.json type**: `"widget"`
+- **Storage name**: MUST end in `.wid.js` (e.g., `widopenweather.wid.js`)
+- **Loaded**: At boot, automatically by `Bangle.loadWidgets()` — runs in background
+- **Lifecycle**: Framework calls `draw()` when needed — no `setUI()`, no timers
+- **Can use**: Only `draw()` — no `setInterval` or `setTimeout` (framework manages redraw)
+- **Constraints**:
+  - **24px height** (widget bar height)
+  - **22px width** (typical) — can be wider but should fit in widget bar
+  - **No full-screen access** — must not draw outside widget bounds
+  - **No lifecycle management** — framework handles show/hide
+- **Can depend on**: Any app/module, but gracefully degrade if missing
+- **Example**: `widopenweather` — weather widget showing temp + icon in 22×24px area
+
+### Widget Storage Requirements
+- Filename MUST end in `.wid.js` — otherwise auto-load at boot fails
+- Widget name in metadata.json should follow `wid*` naming convention (e.g., `widopenweather`)
+- `dependencies` field uses same format as apps: `"{"owmweather": "app"}`
+- No `"icon"` or `"author"` fields needed in metadata (optional, can cause issues if malformed)
+
+### Widget Design Pattern (from widcw/widcal)
+- **Header** (y to y+8): Red background, white text — for temperature/date
+- **Content** (y+9 to y+23): White background, colored icons — for weather icon
+- **Dimensions**: 22px wide × 24px tall
+- **Font**: `"6x8"` scale 1 for header text (6×8px per char)
+- **Colors**: Red `0xF800`, white `0xFFFF`, black `0x0000`
+- **Border**: Black outline on content area (light theme only)
+
+### Widget vs App: When to Use Which
+- **Widget**: Persistent status info visible at all times (battery, weather, steps, date)
+- **App**: Full-screen functionality (clock face, settings, music player)
+- **Widget can be**: Drawn by app via `Bangle.drawWidgets()` — app controls when widget redraws
+
+## 19. Power Saving Checklist
 
 1. Light/white background (transflective LCD efficiency)
 2. Disable HRM with `Bangle.setHRMPower(0, "appname")`
@@ -430,6 +474,52 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 13. **Never full-screen clear per draw** — clear only the region behind the changed element
 14. **Cache font heights at init** — don't call `g.setFont()`/`getFontHeight()` per draw
 15. **Cache static geometry** — `W`, `H`, `cx`, `appTop`, `appH`, `gap` at init, never recalculate
+
+## 20. Widget Case Study: widopenweather
+
+### Project Overview
+- **Repository**: https://github.com/fozzy-ag/widopenweather
+- **Purpose**: Display OpenWeatherMap temperature + weather icon in widget bar
+- **Pattern**: Header (red) + Content (white) — borrowed from widcw/widcal
+
+### Key Discoveries
+1. **No `setUI()` for widgets** — framework manages lifecycle; don't call it
+2. **No `setInterval()` in widgets** — framework calls `draw()` when needed
+3. **Don't need `Bangle.loadWidgets()`** — framework auto-loads `.wid.js` files
+4. **Widget draws on boot** — but only after `Bangle.loadWidgets()` is called by parent app
+5. **Temperature storage format**: Kelvin (raw OWM API default, no units param in owmweather)
+6. **Kelvin → Celsius**: `Math.round(temp - 273.15)` — don't use `locale.temp()` (encoding issues show Ä/Ö)
+7. **Degree symbol problems**: Some fonts render ° as A/Ä — show digits only for reliability
+8. **Empty `icon`/`author` fields** in metadata.json can cause issues — remove if not needed
+9. **Orphaned code removal**: Don't leave `dirty`, `lcdPower` variables that aren't used — wastes memory
+10. **Cached palettes**: Create once at startup (e.g., `paletteClear: require("heatshrink").decompress(...)`) — zero allocation per draw
+
+### File Structure
+```
+widopenweather/
+  widopenweather.js    Widget source (22×24px, no setUI, no timers)
+  metadata.json        type:"widget", dependencies:{"owmweather":"app"}
+  README.md            Credits to weather, widcw, widcal, owmweather
+  screenshot.png       176×176 render showing widget context
+```
+
+### OWM Weather Icon Drawing
+- Source: owmweather `lib.js` — efficient bitmap drawing using heatshrink-compressed icons
+- Codes 200–804 map to specific weather conditions (see Section 9)
+- Palettes cached at startup — `paletteSunny`, `paletteCloudy`, etc.
+- Each palette is 2 colors: `palette[0]` = background, `palette[1]` = foreground
+
+### GitHub Workflow
+1. Create repo on GitHub (web UI)
+2. Clone to local machine
+3. Push commits with `git push`
+4. README auto-renders on GitHub (Markdown)
+
+### Credits Required
+- **weather** by rigrig — original weather widget
+- **widcw** by avanc — calendar week widget (header/content pattern)
+- **widcal** by rigrig — calendar widget (layout template)
+- **owmweather** by halemmerich — OWM weather provider (icon drawing code)
 
 ---
 

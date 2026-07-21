@@ -1,4 +1,4 @@
-# Minimal Watch (minwatch)
+# AI - Minimal Watch (minwatch)
 
 A minimal, battery-saving watchface for [Bangle.js 2](https://banglejs.com/) smartwatch.
 

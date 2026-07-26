@@ -55,7 +55,7 @@
 
   function drawWeatherIcon(ox, oy, code) {
     if (code === undefined || code === null) return;
-    g.setColor(0);
+    g.setColor(g.theme.fg);
     if (code === 800) {
       g.fillCircle(ox, oy, 4);
       for (let i = 0; i < 8; i++) {
@@ -106,7 +106,7 @@
 
   function drawChargingIcon() {
     let cx2 = W - 12, cy2 = 166;
-    g.setColor(0xFFFF);
+    g.setColor(g.theme.bg);
     g.fillRect(W - 22, 158, W, 175);
     if (charging) {
       g.setColor(0xFE60);
@@ -130,7 +130,7 @@
       let layoutChanged = hasWeather !== prevHadWeather;
       prevHadWeather = hasWeather;
       g.setFontAlign(0, -1);
-      g.setColor(0);
+      g.setColor(g.theme.fg);
       if (layoutChanged) g.clearRect(0, appTop, W - 1, appTop + appH - 1);
       try {
         g.setFont("6x8", 4);

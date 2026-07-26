@@ -48,7 +48,7 @@
     let wd = null;
     try { wd = storage.readJSON("weather.json"); } catch(e) {}
     let w = wd && wd.weather ? wd.weather : null;
-    cachedWeather = w && w.temp !== undefined ? w : null;
+    cachedWeather = w && typeof w.temp === "number" ? w : null;
     cachedWeatherTime = now;
     return cachedWeather;
   }
@@ -96,8 +96,7 @@
     }
   }
 
-  function drawBatteryBar(y) {
-    let filled = Math.round(E.getBattery() / 10);
+  function drawBatteryBar(y, filled) {
     for (let i = 0; i < 10; i++) {
       g.setColor(i < filled ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618);
       let x = cx - 59 + i * 12;
@@ -126,12 +125,13 @@
       let hasWeather = w !== null;
       let th = g.setFont("6x8", 4).getFontHeight();
       let sh = g.setFont("6x8", 2).getFontHeight();
-      let totalH = th + sh + sh + bh + (hasWeather ? sh + 8 : 0) + sh + gap * 5;
-      let y = appTop + (appH - totalH) / 2 + 16;
+      let totalH = th + sh + sh + bh + (hasWeather ? sh : 0) + sh + gap * 5;
+      let y = appTop + (appH - totalH) / 2;
       let layoutChanged = hasWeather !== prevHadWeather;
+      prevHadWeather = hasWeather;
       g.setFontAlign(0, -1);
       g.setColor(0);
-      if (layoutChanged) g.clearRect(0, appTop + 16, W - 1, H - 1);
+      if (layoutChanged) g.clearRect(0, appTop, W - 1, appTop + appH - 1);
       try {
         g.setFont("6x8", 4);
         let ts = lc.time(date, 1);
@@ -168,7 +168,7 @@
         let bat = Math.round(E.getBattery() / 10);
         if (layoutChanged || bat !== prevBat) {
           if (!layoutChanged) g.clearRect(cx - 59, y, cx + 60, y + bh - 1);
-          drawBatteryBar(y);
+          drawBatteryBar(y, bat);
           prevBat = bat;
         }
         y += bh + gap;
@@ -194,20 +194,26 @@
           prevSteps = sc;
         }
       } catch(e) {}
-      prevHadWeather = hasWeather;
     } catch(e) {}
     try { drawChargingIcon(); } catch(e) {}
     queueDraw();
   }
 
+  let onLcdPower = function(on) {
+    if (on) queueDraw();
+    else { if (drawTimeout) { clearTimeout(drawTimeout); drawTimeout = undefined; } }
+  };
+
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
-  Bangle.setPollInterval(800);
+  if (Bangle.setPollInterval) Bangle.setPollInterval(800);
   if (Bangle.on) Bangle.on('charging', onCharging);
+  if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
 
   Bangle.setUI({mode:"clock", remove:function() {
     if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
     if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
-  }});
+    if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
+  }, redraw:draw});
   g.reset();
   g.clearRect(Bangle.appRect);
   Bangle.loadWidgets();

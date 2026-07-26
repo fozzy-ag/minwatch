@@ -1,5 +1,8 @@
 # Minimal Watch - Changelog
 
+## v0.28
+- Reduced weather cache TTL from 5min to 60min — weather data updates hourly anyway, saves unnecessary Storage.read calls
+
 ## v0.27
 - Per-element clear + selective redraw: only clears and redraws elements whose content actually changed
 - Full content-area clear only happens when layout shifts (weather appear/disappear) — rare event

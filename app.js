@@ -44,7 +44,7 @@
 
   function getWeather() {
     let now = Date.now();
-    if (cachedWeather !== null && now - cachedWeatherTime < 300000) return cachedWeather;
+    if (cachedWeather !== null && now - cachedWeatherTime < 3600000) return cachedWeather;
     let wd = null;
     try { wd = storage.readJSON("weather.json"); } catch(e) {}
     let w = wd && wd.weather ? wd.weather : null;

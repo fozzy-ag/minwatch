@@ -7,6 +7,7 @@ Living document — update as new discoveries are made. Last updated: v0.35 (202
 ## 1. Hardware & Display
 
 - **Screen**: 176×176 pixels
+- **Battery**: 175 mAh lithium polymer
 - **Display type**: Transflective LCD (LPM013M126A) — **NOT OLED**
   - Pixel colors do NOT affect power draw directly
   - Power savings come from backlight reduction, not dark pixels

@@ -1,5 +1,15 @@
 # Minimal Watch - Changelog
 
+## v0.31
+- Fixed layout overflow: corrected `totalH` formula (weather height was inflated by 8px), removed hardcoded `+16` y-offset
+- Added `lcdPower` handler: pauses draw timer on screen off, restarts on power-on via `queueDraw()`
+- Fixed `prevHadWeather` update: moved before try block to prevent permanent full clearRect on early throw
+- Fixed `E.getBattery()` called twice: single call, value passed to `drawBatteryBar`
+- Fixed `clearRect` bounds: uses `appTop`/`appH` instead of hardcoded values
+- Added `redraw:draw` to `setUI` for framework-initiated redraws
+- Added `setPollInterval` feature guard for older firmware
+- Added `w.temp` validation: `typeof` check prevents NaN display
+
 ## v0.30
 - Removed redundant `g.reset()` in draw — all state is set explicitly after (setFont, setColor, setFontAlign)
 - Added `w.code` existence check before `drawWeatherIcon` — prevents silent failure if owmweather changes field names

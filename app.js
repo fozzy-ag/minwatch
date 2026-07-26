@@ -33,11 +33,11 @@
   function getWeekNumber(d) {
     let key = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
     if (key === cachedWeekKey) return cachedWeekNum;
-    let ud = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    let dayNum = ud.getUTCDay() || 7;
-    ud.setUTCDate(ud.getUTCDate() + 4 - dayNum);
-    let yearStart = new Date(Date.UTC(ud.getUTCFullYear(), 0, 1));
-    cachedWeekNum = Math.ceil((((ud - yearStart) / 86400000) + 1) / 7);
+    let date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    let dayNum = date.getDay() || 7;
+    date.setDate(date.getDate() + 4 - dayNum);
+    let yearStart = new Date(date.getFullYear(), 0, 1);
+    cachedWeekNum = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
     cachedWeekKey = key;
     return cachedWeekNum;
   }
@@ -118,8 +118,8 @@
 
   function draw() {
     try {
-      let appTop = Bangle.appRect ? Bangle.appRect.y : 24;
-      let appH = Bangle.appRect ? Bangle.appRect.h : H - 24;
+      let appTop = Bangle.appRect ? Math.max(Bangle.appRect.y, 24) : 24;
+      let appH = Bangle.appRect ? Math.min(Bangle.appRect.h, H - 24) : H - 24;
       let date = new Date();
       let w = getWeather();
       let hasWeather = w !== null;

@@ -1,3 +1,4 @@
+0.33: Fixed CW display (replaced unsupported Date.UTC/getUTCDay with local time), fixed layout alignment (appTop >= 24 for widget bar)
 0.32: Fixed dark theme rendering — replaced hardcoded g.setColor(0) with g.theme.fg/g.theme.bg
 0.31: Fix layout overflow (totalH inflation, +16 offset), lcdPower handler with queueDraw on power-on, single E.getBattery call, prevHadWeather early update, clearRect bounded to appRect, redraw:draw in setUI, setPollInterval guard, w.temp typeof validation
 0.30: Removed redundant g.reset() in draw (all state set explicitly after), added w.code existence check before drawWeatherIcon

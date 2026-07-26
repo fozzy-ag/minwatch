@@ -1,5 +1,9 @@
 # Minimal Watch - Changelog
 
+## v0.33
+- Fixed calendar week display: replaced `Date.UTC()`/`getUTCDay()`/`setUTCDate()` (not supported in Espruino) with local time equivalents
+- Fixed layout alignment: `appTop` now guaranteed to be >=24 to account for widget bar area
+
 ## v0.32
 - Fixed dark theme rendering: replaced hardcoded `g.setColor(0)` with `g.theme.fg` for text/icons and `g.theme.bg` for charging icon clear rect — watchface was invisible on dark theme
 

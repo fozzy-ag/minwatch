@@ -16,6 +16,7 @@
   let prevBat = -1;
   let prevSteps = -1;
   let prevHadWeather = false;
+  let prevWeatherStr = "";
 
   let W = g.getWidth(), H = g.getHeight();
   let cx = W >> 1;
@@ -175,12 +176,16 @@
       } catch(e) {}
       try {
         if (hasWeather) {
-          if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh + 7);
-          if (w.code !== undefined) drawWeatherIcon(cx - 24, y + 8, w.code);
-          g.setFontAlign(-1, -1);
-          g.setFont("6x8", 2);
-          g.drawString(Math.round(w.temp - 273.15) + "\u00B0C", cx - 11, y, true);
-          g.setFontAlign(0, -1);
+          let wstr = w.code + "|" + Math.round(w.temp - 273.15);
+          if (layoutChanged || wstr !== prevWeatherStr) {
+            if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh + 7);
+            if (w.code !== undefined) drawWeatherIcon(cx - 24, y + 8, w.code);
+            g.setFontAlign(-1, -1);
+            g.setFont("6x8", 2);
+            g.drawString(Math.round(w.temp - 273.15) + "\u00B0C", cx - 11, y, true);
+            g.setFontAlign(0, -1);
+            prevWeatherStr = wstr;
+          }
           y += sh + gap;
         }
       } catch(e) { g.setFontAlign(0, -1); }

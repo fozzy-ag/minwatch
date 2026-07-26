@@ -15,6 +15,7 @@ Living document — update as new discoveries are made. Last updated: v0.35 (202
 - **Widget bar**: Top of screen, approximately 24px tall
   - Use `Bangle.appRect.y` and `Bangle.appRect.h` for actual usable area (don't hardcode 24/152)
   - `Bangle.appRect` is available after `Bangle.setUI()` is called
+  - **Guard `appTop` with `Math.max(Bangle.appRect.y, 24)`** — some firmware versions return `y=0`, causing content to center in the full screen instead of below widgets
 
 ## 2. Graphics API Gotchas
 
@@ -23,18 +24,20 @@ Living document — update as new discoveries are made. Last updated: v0.35 (202
   - `0xF800` = red, `0x07E0` = green, `0x001F` = blue
   - `0xFFFF` = white, `0x0000` = black, `0xC618` = grey (battery bar empty)
   - `0xFE60` = yellow (battery bar low)
+  - **Use `g.theme.fg` and `g.theme.bg`** for text/icons — hardcoded `g.setColor(0)` is invisible on dark theme
   - **WARNING**: `Graphics.createArrayBuffer(w,h,8)` uses 8bpp RGB332, NOT 16-bit. Values like `0x07E0` get truncated to `0xE0` which is red in RGB332, not green. Use correct 8bpp values or use 16bpp buffers.
 - **`g.fillRect(x1, y1, x2, y2)`** — coords are inclusive corners, not width/height
 - **`g.clearRect()`** may not use background color — use `g.setColor(0xFFFF); g.fillRect(...)` for reliable fill
 - **`g.drawString(text, x, y, true)`** — 4th param `true` draws a solid background behind text (prevents bleed-through from previous draws)
 - **`g.getWidth()` / `g.getHeight()`** return screen dimensions (176×176)
+- **Guard `g.clearRect(Bangle.appRect)` with null check** — throws outside try/catch if `Bangle.appRect` is undefined (emulator edge case)
 
 ## 3. Font Metrics & Alignment
 
 - **`"6x8"` font**: 6px wide, 8px tall per character at scale 1
   - Scale 2: 12×16px per char
   - Scale 4: 24×32px per char
-- **`g.setFontHeight()`**: Returns actual pixel height of current font — **use this, don't hardcode**
+- **`g.getFontHeight()`**: Returns actual pixel height of current font — **cache at init, don't call per draw**
 - **`g.setFontAlign(x, y)`**:
   - x: `-1` = left, `0` = center, `1` = right
   - y: `-1` = top, `0` = middle, `1` = bottom
@@ -45,12 +48,12 @@ Living document — update as new discoveries are made. Last updated: v0.35 (202
 
 - **Never hardcode Y positions** — calculate dynamically:
   ```js
-  var appTop = Bangle.appRect ? Bangle.appRect.y : 24;
-  var appH = Bangle.appRect ? Bangle.appRect.h : H - 24;
-  var totalH = th + sh + sh + bh + gap * 5;  // sum of all element heights + gaps
-  var y = appTop + (appH - totalH) / 2 + 16;  // +16 is manual fine-tune offset
+  let appTop = Bangle.appRect ? Math.max(Bangle.appRect.y, 24) : 24;
+  let appH = Bangle.appRect ? Math.min(Bangle.appRect.h, H - 24) : H - 24;
+  let totalH = th + sh + sh + bh + (hasWeather ? sh : 0) + sh + gap * (hasWeather ? 5 : 4);
+  let y = appTop + (appH - totalH) / 2;
   ```
-- **Vertical centering offset**: A +16px offset was needed for perceived centering (empirical, likely due to widget bar visual weight)
+- **Gap count must match element count**: 6 elements = 5 gaps, 5 elements = 4 gaps. Using wrong count shifts layout.
 - **Horizontal centering**: Use `g.setFontAlign(0, -1)` then draw at `x = W/2` (or `W >> 1`)
 - **Weather icons extend ~8px above text position** — account for this in total height calculation (add 8 to weather section height)
 - **Group centering**: When icon + text are a group (e.g., weather), center the group as a whole, not individually
@@ -58,21 +61,28 @@ Living document — update as new discoveries are made. Last updated: v0.35 (202
 
 ## 5. Timer & Update Behavior
 
-- **`setTimeout` with long delays is unreliable** — JS engine may be suspended
-- **`setInterval(draw, 60000)` works reliably** when clock mode is active
-- **DO NOT call timer setup from inside `draw()`** — it resets the interval every update
-- **Lock/LCD power handlers** (`Bangle.on('lock'...)`, `Bangle.on('lcdPower'...)`) may or may not fire depending on firmware — timer-based approach is safer
-- **Keep timer logic simple**: set once at init, never touch from draw()
-
-```js
-let drawInterval;
-// ... define draw() ...
-Bangle.setUI({mode:"clock", remove:function() {
-  if (drawInterval !== undefined) { clearInterval(drawInterval); drawInterval = undefined; }
-}});
-draw();
-drawInterval = setInterval(draw, 60000);
-```
+- **Recommended**: `setTimeout` aligned to minute boundary via `queueDraw()` pattern:
+  ```js
+  let drawTimeout;
+  function queueDraw() {
+    if (drawTimeout) clearTimeout(drawTimeout);
+    drawTimeout = setTimeout(function() {
+      drawTimeout = undefined;
+      draw();
+    }, Math.max(1, 60000 - (Date.now() % 60000)));
+  }
+  ```
+- **Why `setTimeout` over `setInterval`**: `setInterval` drifts over time and can fire at wrong moments. `setTimeout` aligned to `Date.now() % 60000` fires exactly at the minute boundary.
+- **`Math.max(1, ...)` guard**: Prevents 0ms timeout edge case when called exactly on the minute.
+- **Always cancel before re-queue**: `clearTimeout(drawTimeout)` prevents duplicate timers.
+- **DO NOT call timer setup from inside `draw()`** — it resets the timeout every update.
+- **lcdPower handler**: Stop timer when screen off, restart + immediate redraw when on:
+  ```js
+  let onLcdPower = function(on) {
+    if (on) queueDraw();
+    else { if (drawTimeout) { clearTimeout(drawTimeout); drawTimeout = undefined; } }
+  };
+  ```
 
 ## 6. Initialization Order
 
@@ -82,26 +92,37 @@ The correct order matters:
 // 1. Disable sensors to save power
 if (Bangle.setHRMPower) Bangle.setHRMPower(0, "appname");
 
-// 2. Set UI mode BEFORE draw() and setInterval
-Bangle.setUI({mode:"clock", remove:function() { clearInterval(drawInterval); }});
+// 2. Set accelerometer poll interval
+if (Bangle.setPollInterval) Bangle.setPollInterval(800);
 
-// 3. Initial clear
-g.setColor(0xFFFF);
-g.fillRect(0, 0, g.getWidth(), g.getHeight());
+// 3. Register event listeners
+if (Bangle.on) Bangle.on('charging', onCharging);
+if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
 
-// 4. Load and draw widgets
+// 4. Set UI mode BEFORE draw()
+Bangle.setUI({mode:"clock", remove:function() {
+  if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
+  if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
+  if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
+}, redraw:draw});
+
+// 5. Reset graphics and clear app area (guard against missing appRect)
+g.reset();
+if (Bangle.appRect) g.clearRect(Bangle.appRect);
+
+// 6. Load and draw widgets (defer drawWidgets)
 Bangle.loadWidgets();
-Bangle.drawWidgets();
+setTimeout(Bangle.drawWidgets, 0);
 
-// 5. First draw
+// 7. Initial draw
 draw();
-
-// 6. Start interval AFTER first draw
-drawInterval = setInterval(draw, 60000);
 ```
 
 - `Bangle.setUI({mode:"clock"})` tells the system this is a clock app (keeps screen on, handles button, etc.)
-- Must be called **before** `draw()` and `setInterval`
+- Must be called **before** `draw()`
+- `Bangle.setUI()` calls `g.reset()` internally (since firmware 2v16) — your draw code must re-set fonts/colors
+- `redraw:draw` callback allows framework to request redraws (e.g., after theme changes)
+- Defer `drawWidgets` with `setTimeout(fn, 0)` to avoid blocking initialization
 
 ## 7. Storage & Data Reading
 
@@ -111,20 +132,19 @@ drawInterval = setInterval(draw, 60000);
 - **Use TTL caching for infrequent data** — flash reads cost 10-50ms; don't re-read every 60s if data changes hourly
 - **Weather data** (from owmweather app): `require("Storage").readJSON("weather.json")`
   - Structure: `wd.weather.temp` (Kelvin), `wd.weather.code` (OWM code)
-  - Changes ~every 30 min from phone companion — cache with 5-minute TTL
+  - Changes ~every 30 min from phone companion — cache with 60-minute TTL (matches external update frequency)
 
 ```js
-var lc = require("locale");
-var cachedWeather = null;
-var cachedWeatherTime = 0;
+let cachedWeather = null;
+let cachedWeatherTime = 0;
 
 function getWeather() {
-  var now = Date.now();
-  if (cachedWeather !== null && now - cachedWeatherTime < 300000) return cachedWeather;
-  var wd = null;
-  try { wd = require("Storage").readJSON("weather.json"); } catch(e) {}
-  var w = wd && wd.weather ? wd.weather : null;
-  cachedWeather = w && w.temp !== undefined ? w : null;
+  let now = Date.now();
+  if (cachedWeather !== null && now - cachedWeatherTime < 3600000) return cachedWeather;
+  let wd = null;
+  try { wd = storage.readJSON("weather.json"); } catch(e) {}
+  let w = wd && wd.weather ? wd.weather : null;
+  cachedWeather = w && typeof w.temp === "number" ? w : null;
   cachedWeatherTime = now;
   return cachedWeather;
 }
@@ -152,12 +172,21 @@ function getWeather() {
   - 801–804: Cloudy
 - **Weather section**: hide gracefully if owmweather not installed or no data (try/catch returns nothing)
 - **`Math.round(w.temp - 273.15)`** for clean integer display with °C
+- **Track weather display string** — only redraw icon+text when code or temp changes:
+  ```js
+  let wstr = w.code + "|" + Math.round(w.temp - 273.15);
+  if (layoutChanged || wstr !== prevWeatherStr) {
+    // clear and redraw
+    prevWeatherStr = wstr;
+  }
+  ```
 
 ## 10. Step Counter
 
 - `Bangle.getStepCount()` returns total steps for the day
 - No setup required — hardware pedometer runs independently
 - Returns 0 if no data
+- **Guard with `sc = sc || 0`** — prevents "undefined steps" string on emulator
 
 ## 11. Charging Detection
 
@@ -165,7 +194,7 @@ function getWeather() {
 - **`Bangle.on('charging', function(charging) {...})`** — event-based, fires on state change
 - Event-driven is preferred: zero overhead when not charging
 - Guard both with existence checks for emulator compatibility
-- Clean up with `Bangle.removeAllListeners('charging')` in remove handler
+- Clean up with `Bangle.removeListener('charging', onCharging)` in remove handler (NOT `removeAllListeners`)
 - Note: This is only available on Bangle.js smartwatches (not emulator)
 - **Call `isCharging()` AFTER `Bangle.setUI()`** — firmware may not have charging state ready before then
 - **Always draw charging icon OUTSIDE the outer try/catch** — if any content error occurs, the icon still renders
@@ -177,6 +206,7 @@ function getWeather() {
 - Battery bar: 10 segments, 10px wide, 2px gap between segments
 - Color coding: red (≤20%), yellow (≤40%), green (>40%)
 - Grey (`0xC618`) for empty segments
+- **Call `E.getBattery()` once per draw** — pass value to `drawBatteryBar(y, filled)` instead of calling twice
 
 ```js
 let filled = Math.round(E.getBattery() / 10);
@@ -199,14 +229,17 @@ for (let i = 0; i < 10; i++) {
 - **Guard all hardware-specific APIs** with existence checks:
   ```js
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
+  if (Bangle.setPollInterval) Bangle.setPollInterval(800);
+  if (Bangle.on) Bangle.on('charging', onCharging);
   ```
 - **Wrap Storage reads in try/catch** — emulator may not have all files
 - `Bangle.appRect` may not be available — provide fallback (e.g., `var appTop = Bangle.appRect ? Bangle.appRect.y : 24;`)
+- **Guard `g.clearRect(Bangle.appRect)`** — throws if `Bangle.appRect` is undefined: `if (Bangle.appRect) g.clearRect(Bangle.appRect);`
 
 ## 15. Code Style & Performance
 
 - **Cache everything**: locale, storage reads, font height measurements
-- **TTL caching**: for data that changes rarely (weather: 5min, week number: by day), avoid repeated flash reads
+- **TTL caching**: for data that changes rarely (weather: 60min, week number: by day), avoid repeated flash reads
 - **Per-section try/catch**: one element failure shouldn't hide others
 - **Always restore graphics state in catch blocks** — if a section changes `g.setFontAlign()`, restore it in `catch` so downstream sections aren't affected:
   ```js
@@ -227,52 +260,45 @@ for (let i = 0; i < 10; i++) {
 - **Cache `W >> 1` as `cx`** — single variable instead of repeated bit shifts
 - **Week number only changes once per day** — cache by date, skip calculation if same day
 - **Cache font heights at init** — `g.setFont()` + `getFontHeight()` is expensive; measure once, store in variables
-- **Cache static values at init**: `W`, `H`, `cx`, `appTop`, `appH`, `gap`, `bh` — never recalculate in draw()
+- **Cache static values at init**: `W`, `H`, `cx`, `gap`, `bh`, `th`, `sh` — never recalculate in draw()
+- **Use `g.theme.fg` / `g.theme.bg`** — hardcoded colors break on dark theme
 
 ### Partial Redraw Pattern (v0.19)
 The single biggest battery drain is **clearing and redrawing the entire screen every 60 seconds**. The optimized approach:
 
 1. **Track last-drawn values** — only redraw when the value actually changed
 2. **Clear only the affected region** — `g.fillRect()` behind the changed element, not the full 176×176 screen
-3. **Skip `g.reset()`** — it resets all graphics state and is expensive; set state explicitly once at init
+3. **Set state explicitly** — don't call `g.reset()` in draw(); set font/color/align per section
 
 ```js
-var lastTimeStr = "";
-var lastDay = -1;
-var lastBattery = -1;
-var lastSteps = -1;
+let prevTimeStr = "";
+let prevDateStr = "";
+let prevCW = -1;
+let prevBat = -1;
+let prevSteps = -1;
+let prevWeatherStr = "";
 
 function draw() {
-  var date = new Date();
-  var timeStr = lc.time(date, 1);
+  let date = new Date();
+  let ts = lc.time(date, 1);
 
   g.setFontAlign(0, -1);
-  g.setColor(0);
+  g.setColor(g.theme.fg);
 
   // Only redraw time if it changed
-  if (timeStr !== lastTimeStr) {
+  if (ts !== prevTimeStr) {
     g.setFont("6x8", 4);
-    g.setColor(0xFFFF); g.fillRect(0, y-1, W, y+th+1);  // clear only this line
-    g.setColor(0);
-    g.drawString(timeStr, cx, y, true);
-    lastTimeStr = timeStr;
+    g.clearRect(0, y, W - 1, y + th - 1);
+    g.drawString(ts, cx, y, true);
+    prevTimeStr = ts;
   }
   y += th + gap;
 
-  // Only redraw date/CW if day changed
-  if (day !== lastDay) {
-    // ... redraw date and CW ...
-    lastDay = day;
-  } else {
-    y += sh + gap;  // skip past unchanged sections
-    y += sh + gap;
-  }
-
-  // Only redraw battery if percentage changed
-  var filled = Math.round(E.getBattery() / 10);
-  if (filled !== lastBattery) {
-    // ... clear and redraw bar ...
-    lastBattery = filled;
+  // Only redraw weather if code or temp changed
+  let wstr = w.code + "|" + Math.round(w.temp - 273.15);
+  if (wstr !== prevWeatherStr) {
+    // clear and redraw
+    prevWeatherStr = wstr;
   }
 }
 ```
@@ -283,15 +309,16 @@ function draw() {
 | Time | Every minute (string change) | Medium — only 1 line |
 | Date/CW | Once per day | Zero after first draw |
 | Battery | When % changes (rarely) | Zero most draws |
-| Weather | When temp string changes | Zero most draws |
+| Weather | When code or temp changes (~1/hr) | Zero most draws |
 | Steps | When count changes | Low — usually changes often |
 | Charging | Event-driven only | Zero overhead |
 
 **What NOT to do**:
-- `g.reset()` on every draw — resets all state, expensive
+- `g.reset()` on every draw — resets all state, expensive (Bangle.setUI already calls it at init)
 - `g.fillRect(0, appTop, W, H)` on every draw — clears 176×152 pixels for nothing
 - `g.setFont("6x8", 4); g.setFont("6x8", 2)` on every draw — cache font heights, set font only when switching
 - Per-section try/catch when sections don't throw — consolidate into outer catch
+- Hardcoded `g.setColor(0)` — use `g.theme.fg` / `g.theme.bg` for dark theme support
 
 ## 16. App Loader & Distribution
 
@@ -365,6 +392,7 @@ Version must match across ALL of these files:
 - Running `create_apps_json.sh` without args generates both files
 - **You must regenerate after ANY metadata.json change**, or the App Loader shows stale version
 - Closing and reopening the browser tab may still be needed (JS memory cache persists even with no-cache headers)
+- **`apps.json` and `apps.local.json` are gitignored** — they live in the BangleApps directory, not the app repo
 
 ### Dependency Format in metadata.json
 The key is the **app/module name**, the value is the **type**:
@@ -393,6 +421,7 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 - **Must set no-cache headers**: `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
 - Serve on `0.0.0.0:8080` to allow phone access over WiFi
 - Access from phone: `http://<termux-ip>:8080` (not `localhost`)
+- `loader.js` only reads `apps.local.json` when `hostname === 'localhost'` — accessing via IP uses `apps.json`
 - Browser JS cache persists even with no-cache headers — **close tab and reopen** to see changes
 - Python example: `serve.py` in app directory
 
@@ -461,19 +490,21 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 
 1. Light/white background (transflective LCD efficiency)
 2. Disable HRM with `Bangle.setHRMPower(0, "appname")`
-3. Don't poll sensors unnecessarily
-4. Use `setInterval` for updates (not continuous loops)
+3. Don't poll sensors unnecessarily — use `Bangle.setPollInterval(800)` for ~0.15mA saving
+4. Use `setTimeout` aligned to minute boundary (not `setInterval` or continuous loops)
 5. Cache all reads — minimize Storage/require() calls per draw
-6. Use TTL caching for infrequent data (weather: 5min, week num: by day)
+6. Use TTL caching for infrequent data (weather: 60min, week num: by day)
 7. Minimal redraw area — don't overdraw widget regions
 8. Short/efficient locale format (`1` parameter)
 9. Event-driven state detection (charging) instead of polling
 10. Draw overlays (charging icon) outside main try/catch so they always render
 11. **Partial redraws** — track last values, only clear+redraw changed elements (v0.19)
-12. **Never `g.reset()` in draw()** — it's expensive and resets all state; set state explicitly
+12. **Never `g.reset()` in draw()** — Bangle.setUI already calls it at init; set state explicitly per section
 13. **Never full-screen clear per draw** — clear only the region behind the changed element
 14. **Cache font heights at init** — don't call `g.setFont()`/`getFontHeight()` per draw
-15. **Cache static geometry** — `W`, `H`, `cx`, `appTop`, `appH`, `gap` at init, never recalculate
+15. **Cache static geometry** — `W`, `H`, `cx`, `gap`, `bh`, `th`, `sh` at init, never recalculate
+16. **Use `g.theme.fg` / `g.theme.bg`** — hardcoded colors break on dark theme
+17. **Skip weather redraw when unchanged** — track display string, only redraw when code or temp changes
 
 ## 20. Widget Case Study: widopenweather
 

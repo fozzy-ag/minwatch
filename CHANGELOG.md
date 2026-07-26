@@ -1,5 +1,8 @@
 # Minimal Watch - Changelog
 
+## v0.32
+- Fixed dark theme rendering: replaced hardcoded `g.setColor(0)` with `g.theme.fg` for text/icons and `g.theme.bg` for charging icon clear rect — watchface was invisible on dark theme
+
 ## v0.31
 - Fixed layout overflow: corrected `totalH` formula (weather height was inflated by 8px), removed hardcoded `+16` y-offset
 - Added `lcdPower` handler: pauses draw timer on screen off, restarts on power-on via `queueDraw()`

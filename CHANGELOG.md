@@ -1,5 +1,9 @@
 # Minimal Watch - Changelog
 
+## v0.30
+- Removed redundant `g.reset()` in draw — all state is set explicitly after (setFont, setColor, setFontAlign)
+- Added `w.code` existence check before `drawWeatherIcon` — prevents silent failure if owmweather changes field names
+
 ## v0.29
 - Re-added `Bangle.setPollInterval(800)` — reduces accelerometer power from 0.3mA to 0.15mA
 - v0.22 removal was about JS `accel` events, not the hardware pedometer (Kionix KX022 pedometer register runs independently)

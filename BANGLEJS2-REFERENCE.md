@@ -1,6 +1,6 @@
 # Bangle.js 2 Development Reference
 
-Living document — update as new discoveries are made. Last updated: v0.20 (2026-07-21).
+Living document — update as new discoveries are made. Last updated: v0.30 (2026-07-26).
 
 ---
 

@@ -129,7 +129,6 @@
       let totalH = th + sh + sh + bh + (hasWeather ? sh + 8 : 0) + sh + gap * 5;
       let y = appTop + (appH - totalH) / 2 + 16;
       let layoutChanged = hasWeather !== prevHadWeather;
-      g.reset();
       g.setFontAlign(0, -1);
       g.setColor(0);
       if (layoutChanged) g.clearRect(0, appTop + 16, W - 1, H - 1);
@@ -177,7 +176,7 @@
       try {
         if (hasWeather) {
           if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh + 7);
-          drawWeatherIcon(cx - 24, y + 8, w.code);
+          if (w.code !== undefined) drawWeatherIcon(cx - 24, y + 8, w.code);
           g.setFontAlign(-1, -1);
           g.setFont("6x8", 2);
           g.drawString(Math.round(w.temp - 273.15) + "\u00B0C", cx - 11, y, true);

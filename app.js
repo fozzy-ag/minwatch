@@ -22,6 +22,8 @@
   let cx = W >> 1;
   let gap = 8;
   let bh = 7;
+  let th = g.setFont("6x8", 4).getFontHeight();
+  let sh = g.setFont("6x8", 2).getFontHeight();
 
   function queueDraw() {
     if (drawTimeout) clearTimeout(drawTimeout);
@@ -124,8 +126,6 @@
       let date = new Date();
       let w = getWeather();
       let hasWeather = w !== null;
-      let th = g.setFont("6x8", 4).getFontHeight();
-      let sh = g.setFont("6x8", 2).getFontHeight();
       let totalH = th + sh + sh + bh + (hasWeather ? sh : 0) + sh + gap * 5;
       let y = appTop + (appH - totalH) / 2;
       let layoutChanged = hasWeather !== prevHadWeather;
@@ -220,7 +220,7 @@
     if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
   }, redraw:draw});
   g.reset();
-  g.clearRect(Bangle.appRect);
+  if (Bangle.appRect) g.clearRect(Bangle.appRect);
   Bangle.loadWidgets();
   setTimeout(Bangle.drawWidgets, 0);
   if (Bangle.isCharging) charging = Bangle.isCharging();

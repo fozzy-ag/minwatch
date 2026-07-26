@@ -1,5 +1,8 @@
 # Minimal Watch - Changelog
 
+## v0.34
+- Weather redraw skipped when data unchanged — icon and temp only redraw when weather cache refreshes (~1/hour), saving ~59 unnecessary clear+redraw cycles per hour
+
 ## v0.33
 - Fixed calendar week display: replaced `Date.UTC()`/`getUTCDay()`/`setUTCDate()` (not supported in Espruino) with local time equivalents
 - Fixed layout alignment: `appTop` now guaranteed to be >=24 to account for widget bar area

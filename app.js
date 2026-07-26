@@ -202,6 +202,7 @@
   }
 
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
+  Bangle.setPollInterval(800);
   if (Bangle.on) Bangle.on('charging', onCharging);
 
   Bangle.setUI({mode:"clock", remove:function() {

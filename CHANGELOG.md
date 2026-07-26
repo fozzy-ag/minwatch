@@ -1,5 +1,9 @@
 # Minimal Watch - Changelog
 
+## v0.29
+- Re-added `Bangle.setPollInterval(800)` — reduces accelerometer power from 0.3mA to 0.15mA
+- v0.22 removal was about JS `accel` events, not the hardware pedometer (Kionix KX022 pedometer register runs independently)
+
 ## v0.28
 - Reduced weather cache TTL from 5min to 60min — weather data updates hourly anyway, saves unnecessary Storage.read calls
 

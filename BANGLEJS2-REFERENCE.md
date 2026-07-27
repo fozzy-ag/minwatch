@@ -93,26 +93,34 @@ The correct order matters:
 // 1. Disable sensors to save power
 if (Bangle.setHRMPower) Bangle.setHRMPower(0, "appname");
 
-// 2. Register event listeners
+// 2. Set BLE connection interval (if not using notifications)
+if (NRF.setConnectionInterval) NRF.setConnectionInterval(4000);
+
+// 3. Register event listeners
 if (Bangle.on) Bangle.on('charging', onCharging);
 if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
+if (Bangle.on) Bangle.on('step', onStep);
 
-// 3. Set UI mode BEFORE draw()
+// 4. Set UI mode BEFORE draw()
 Bangle.setUI({mode:"clock", remove:function() {
   if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
   if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
   if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
+  if (Bangle.removeListener) Bangle.removeListener('step', onStep);
 }, redraw:draw});
 
-// 4. Reset graphics and clear app area (guard against missing appRect)
+// 5. Reset graphics and clear app area (guard against missing appRect)
 g.reset();
 if (Bangle.appRect) g.clearRect(Bangle.appRect);
 
-// 5. Load and draw widgets (defer drawWidgets)
+// 6. Load and draw widgets (defer drawWidgets)
 Bangle.loadWidgets();
 setTimeout(Bangle.drawWidgets, 0);
 
-// 6. Initial draw
+// 7. Initialize state from hardware, then draw
+if (Bangle.isCharging) charging = Bangle.isCharging();
+drawChargingIcon();  // event-driven: draw once at init, updated by onCharging
+onStep();            // initialize cached step count before first draw
 draw();
 ```
 
@@ -328,6 +336,17 @@ function draw() {
 | Weather | When code or temp changes (~1/hr) | Zero most draws |
 | Steps | When count changes | Low — usually changes often |
 | Charging | Event-driven only | Zero overhead |
+
+**Layout change tracking**: When weather appears or disappears, the entire content area must be cleared and recentered. Track with a `prevHadWeather` flag:
+```js
+let prevHadWeather = false;
+// In draw():
+let hasWeather = w !== null;
+let layoutChanged = hasWeather !== prevHadWeather;
+prevHadWeather = hasWeather;
+if (layoutChanged) g.clearRect(0, appTop, W - 1, appTop + appH - 1);
+// Each section then checks: if (layoutChanged || value !== prev) { ... }
+```
 
 **What NOT to do**:
 - `g.reset()` on every draw — resets all state, expensive (Bangle.setUI already calls it at init)

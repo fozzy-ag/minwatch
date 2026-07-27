@@ -1,5 +1,9 @@
 # Minimal Watch - Changelog
 
+## v0.41
+
+- Reverted v0.40 changes — caused crash on device
+
 ## v0.40
 
 - Cache date string at day level — eliminates locale calls and overflow checks on 1,439 of 1,440 daily draws

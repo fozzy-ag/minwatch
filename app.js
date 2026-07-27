@@ -18,9 +18,6 @@
   let cachedSteps = 0;
   let prevHadWeather = false;
   let prevWeatherStr = "";
-  let cachedDay = -1;
-  let cachedDateStr = "";
-  let prevSegments = [];
 
   let W = g.getWidth(), H = g.getHeight();
   let cx = W >> 1;
@@ -109,14 +106,9 @@
 
   function drawBatteryBar(y, filled) {
     for (let i = 0; i < 10; i++) {
-      let shouldFill = i < filled;
-      let color = shouldFill ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618;
-      if (prevSegments[i] !== color) {
-        g.setColor(color);
-        let x = cx - 59 + i * 12;
-        g.fillRect(x, y, x + 9, y + 6);
-        prevSegments[i] = color;
-      }
+      g.setColor(i < filled ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618);
+      let x = cx - 59 + i * 12;
+      g.fillRect(x, y, x + 9, y + 6);
     }
   }
 
@@ -158,14 +150,9 @@
       } catch(e) {}
       try {
         g.setFont("6x8", 2);
-        let day = date.getDate();
-        if (day !== cachedDay) {
-          cachedDateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
-          if (g.stringWidth(cachedDateStr) > W - 10) cachedDateStr = lc.date(date, 1);
-          if (g.stringWidth(cachedDateStr) > W - 10) cachedDateStr = lc.dow(date, 1);
-          cachedDay = day;
-        }
-        let dateStr = cachedDateStr;
+        let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
+        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
+        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
         if (layoutChanged || dateStr !== prevDateStr) {
           if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
           g.drawString(dateStr, cx, y, true);

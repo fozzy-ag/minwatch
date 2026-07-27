@@ -1,3 +1,4 @@
+0.41: Reverted v0.40 changes (date caching, battery segment tracking) — caused crash on device
 0.40: Cache date string at day level, battery bar redraws only changed segments
 0.39: Charging icon now event-driven only — removed redundant redraw from draw(), called once at init
 0.38: BLE connection interval set to 4s — saves ~0.3-0.4mA by overriding Espruino auto-adjustment (notifications not used, weather updates hourly)

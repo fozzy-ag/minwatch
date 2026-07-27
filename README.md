@@ -60,7 +60,7 @@ No configuration needed. Weather requires the owmweather app to be installed and
 
 See [ChangeLog](ChangeLog) for full version history.
 
-Current version: **0.39**
+Current version: **0.40**
 
 ## License
 

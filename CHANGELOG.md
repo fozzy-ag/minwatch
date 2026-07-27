@@ -1,5 +1,10 @@
 # Minimal Watch - Changelog
 
+## v0.40
+
+- Cache date string at day level — eliminates locale calls and overflow checks on 1,439 of 1,440 daily draws
+- Battery bar redraws only changed segments — tracks per-segment color, only SPI-writes segments that differ
+
 ## v0.39
 
 - Charging icon now event-driven only — removed redundant redraw from draw(), called once at init

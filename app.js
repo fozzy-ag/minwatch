@@ -215,6 +215,7 @@
   };
 
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
+  if (NRF.setConnectionInterval) NRF.setConnectionInterval(4000);
 
   if (Bangle.on) Bangle.on('charging', onCharging);
   if (Bangle.on) Bangle.on('lcdPower', onLcdPower);

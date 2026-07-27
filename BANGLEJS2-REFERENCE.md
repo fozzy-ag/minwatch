@@ -261,6 +261,7 @@ for (let i = 0; i < 10; i++) {
 
 ## 15. Code Style & Performance
 
+- **Code reviews catch logic errors, NOT Espruino engine quirks.** Any new JS pattern (arrays, closures, block scoping, new variable types) MUST be tested on actual hardware before committing. Logical correctness on paper does not guarantee the code works on the Bangle.js 2 firmware. The `prevSegments[]` array in `drawBatteryBar` caused a crash on-device despite passing logical review — Espruino's JS engine handles arrays differently than standard V8.
 - **Cache everything**: locale, storage reads, font height measurements
 - **TTL caching**: for data that changes rarely (weather: 60min, week number: by day), avoid repeated flash reads
 - **Per-section try/catch**: one element failure shouldn't hide others

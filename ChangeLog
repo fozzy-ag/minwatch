@@ -1,3 +1,4 @@
+0.42: Based on v0.40 — moved event registration after Bangle.setUI, wrapped entire init in try/catch
 0.41: Reverted v0.40 changes (date caching, battery segment tracking) — caused crash on device
 0.40: Cache date string at day level, battery bar redraws only changed segments
 0.39: Charging icon now event-driven only — removed redundant redraw from draw(), called once at init

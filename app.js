@@ -18,6 +18,9 @@
   let cachedSteps = 0;
   let prevHadWeather = false;
   let prevWeatherStr = "";
+  let cachedDay = -1;
+  let cachedDateStr = "";
+  let prevSegments = [];
 
   let W = g.getWidth(), H = g.getHeight();
   let cx = W >> 1;
@@ -106,9 +109,14 @@
 
   function drawBatteryBar(y, filled) {
     for (let i = 0; i < 10; i++) {
-      g.setColor(i < filled ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618);
-      let x = cx - 59 + i * 12;
-      g.fillRect(x, y, x + 9, y + 6);
+      let shouldFill = i < filled;
+      let color = shouldFill ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618;
+      if (prevSegments[i] !== color) {
+        g.setColor(color);
+        let x = cx - 59 + i * 12;
+        g.fillRect(x, y, x + 9, y + 6);
+        prevSegments[i] = color;
+      }
     }
   }
 
@@ -150,9 +158,14 @@
       } catch(e) {}
       try {
         g.setFont("6x8", 2);
-        let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
-        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
-        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
+        let day = date.getDate();
+        if (day !== cachedDay) {
+          cachedDateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
+          if (g.stringWidth(cachedDateStr) > W - 10) cachedDateStr = lc.date(date, 1);
+          if (g.stringWidth(cachedDateStr) > W - 10) cachedDateStr = lc.dow(date, 1);
+          cachedDay = day;
+        }
+        let dateStr = cachedDateStr;
         if (layoutChanged || dateStr !== prevDateStr) {
           if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
           g.drawString(dateStr, cx, y, true);
@@ -213,25 +226,28 @@
     else { if (drawTimeout) { clearTimeout(drawTimeout); drawTimeout = undefined; } }
   };
 
-  if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
-  if (NRF.setConnectionInterval) NRF.setConnectionInterval(4000);
+  try {
+    if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
+    if (NRF.setConnectionInterval) NRF.setConnectionInterval(4000);
 
-  if (Bangle.on) Bangle.on('charging', onCharging);
-  if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
-  if (Bangle.on) Bangle.on('step', onStep);
+    Bangle.setUI({mode:"clock", remove:function() {
+      if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
+      if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
+      if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
+      if (Bangle.removeListener) Bangle.removeListener('step', onStep);
+    }, redraw:draw});
+    g.reset();
+    if (Bangle.appRect) g.clearRect(Bangle.appRect);
+    Bangle.loadWidgets();
+    setTimeout(Bangle.drawWidgets, 0);
 
-  Bangle.setUI({mode:"clock", remove:function() {
-    if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
-    if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
-    if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
-    if (Bangle.removeListener) Bangle.removeListener('step', onStep);
-  }, redraw:draw});
-  g.reset();
-  if (Bangle.appRect) g.clearRect(Bangle.appRect);
-  Bangle.loadWidgets();
-  setTimeout(Bangle.drawWidgets, 0);
-  if (Bangle.isCharging) charging = Bangle.isCharging();
-  drawChargingIcon();
-  onStep();
-  draw();
+    if (Bangle.on) Bangle.on('charging', onCharging);
+    if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
+    if (Bangle.on) Bangle.on('step', onStep);
+
+    if (Bangle.isCharging) charging = Bangle.isCharging();
+    drawChargingIcon();
+    onStep();
+    draw();
+  } catch(e) {}
 }

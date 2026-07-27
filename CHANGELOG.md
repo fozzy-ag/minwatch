@@ -1,5 +1,11 @@
 # Minimal Watch - Changelog
 
+## v0.42
+
+- Based on v0.40 (date caching + battery segment tracking retained)
+- Moved event registration (charging, lcdPower, step) after Bangle.setUI — prevents events firing before UI is initialized
+- Wrapped entire init sequence in try/catch — prevents crash loop if any init step throws
+
 ## v0.41
 
 - Reverted v0.40 changes — caused crash on device

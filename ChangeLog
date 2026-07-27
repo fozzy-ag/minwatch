@@ -1,3 +1,4 @@
+0.37: Event-driven step counting — switched from per-minute polling to Bangle.on('step') handler, zero overhead when idle
 0.36: Fixed step counter — switched from Bangle.getStepCount() (never resets) to Bangle.getHealthStatus("day").steps (resets at midnight), added ||0 fallback, removed setPollInterval(800) (firmware auto-throttles correctly)
 0.35: Cached font heights at init, guarded clearRect against missing Bangle.appRect
 0.34: Weather redraw skipped when data unchanged (saves ~59 redraws/hour)

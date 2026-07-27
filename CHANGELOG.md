@@ -1,5 +1,8 @@
 # Minimal Watch - Changelog
 
+## v0.37
+- Event-driven step counting: switched from per-minute `getHealthStatus` polling to `Bangle.on('step')` handler — zero overhead when idle, step counter updates instantly on step detection
+
 ## v0.36
 - Fixed step counter: switched from `Bangle.getStepCount()` (never resets) to `Bangle.getHealthStatus("day").steps` (resets at midnight)
 - Added `|| 0` fallback for steps if health tracking is not enabled

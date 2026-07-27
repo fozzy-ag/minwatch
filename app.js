@@ -15,6 +15,7 @@
   let prevCW = -1;
   let prevBat = -1;
   let prevSteps = -1;
+  let cachedSteps = 0;
   let prevHadWeather = false;
   let prevWeatherStr = "";
 
@@ -54,6 +55,10 @@
     cachedWeather = w && typeof w.temp === "number" ? w : null;
     cachedWeatherTime = now;
     return cachedWeather;
+  }
+
+  function onStep() {
+    try { cachedSteps = Bangle.getHealthStatus("day").steps || 0; } catch(e) {}
   }
 
   function drawWeatherIcon(ox, oy, code) {
@@ -191,7 +196,7 @@
       } catch(e) { g.setFontAlign(0, -1); }
       try {
         g.setFont("6x8", 2);
-        let sc = Bangle.getHealthStatus("day").steps || 0;
+        let sc = cachedSteps;
         let ss = sc + " steps";
         if (layoutChanged || sc !== prevSteps) {
           if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
@@ -213,16 +218,19 @@
 
   if (Bangle.on) Bangle.on('charging', onCharging);
   if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
+  if (Bangle.on) Bangle.on('step', onStep);
 
   Bangle.setUI({mode:"clock", remove:function() {
     if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
     if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
     if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
+    if (Bangle.removeListener) Bangle.removeListener('step', onStep);
   }, redraw:draw});
   g.reset();
   if (Bangle.appRect) g.clearRect(Bangle.appRect);
   Bangle.loadWidgets();
   setTimeout(Bangle.drawWidgets, 0);
   if (Bangle.isCharging) charging = Bangle.isCharging();
+  onStep();
   draw();
 }

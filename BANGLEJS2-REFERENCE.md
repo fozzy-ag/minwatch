@@ -1,6 +1,6 @@
 # Bangle.js 2 Development Reference
 
-Living document — update as new discoveries are made. Last updated: v0.35 (2026-07-27).
+Living document — update as new discoveries are made. Last updated: v0.36 (2026-07-27).
 
 ---
 
@@ -93,29 +93,26 @@ The correct order matters:
 // 1. Disable sensors to save power
 if (Bangle.setHRMPower) Bangle.setHRMPower(0, "appname");
 
-// 2. Set accelerometer poll interval
-if (Bangle.setPollInterval) Bangle.setPollInterval(800);
-
-// 3. Register event listeners
+// 2. Register event listeners
 if (Bangle.on) Bangle.on('charging', onCharging);
 if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
 
-// 4. Set UI mode BEFORE draw()
+// 3. Set UI mode BEFORE draw()
 Bangle.setUI({mode:"clock", remove:function() {
   if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
   if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
   if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
 }, redraw:draw});
 
-// 5. Reset graphics and clear app area (guard against missing appRect)
+// 4. Reset graphics and clear app area (guard against missing appRect)
 g.reset();
 if (Bangle.appRect) g.clearRect(Bangle.appRect);
 
-// 6. Load and draw widgets (defer drawWidgets)
+// 5. Load and draw widgets (defer drawWidgets)
 Bangle.loadWidgets();
 setTimeout(Bangle.drawWidgets, 0);
 
-// 7. Initial draw
+// 6. Initial draw
 draw();
 ```
 
@@ -184,10 +181,13 @@ function getWeather() {
 
 ## 10. Step Counter
 
-- `Bangle.getStepCount()` returns total steps for the day
+- **`Bangle.getStepCount()`** — returns total steps since boot, **never resets** (confirmed by gfwilliams in Discussion #3907)
+- **`Bangle.getHealthStatus("day").steps`** — returns daily step count, **resets at midnight** (firmware `healthDaily` struct, `midnight` event)
+- Use `Bangle.getHealthStatus("day").steps` for daily step display
+- **Guard with `sc = sc || 0`** — prevents "undefined steps" if health tracking is not enabled
 - No setup required — hardware pedometer runs independently
-- Returns 0 if no data
-- **Guard with `sc = sc || 0`** — prevents "undefined steps" string on emulator
+- `WIDGETS.wpedom.getSteps()` also returns daily steps (from pedometer widget), but `getHealthStatus` is faster (avoids storage scan)
+- **`Bangle.getStepCount()` vs `Bangle.getHealthStatus("day").steps`**: Issue #1216 reported `getHealthStatus("day").steps` not resetting at midnight — this was a firmware bug, fixed and closed
 
 ## 11. Charging Detection
 
@@ -230,7 +230,6 @@ for (let i = 0; i < 10; i++) {
 - **Guard all hardware-specific APIs** with existence checks:
   ```js
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
-  if (Bangle.setPollInterval) Bangle.setPollInterval(800);
   if (Bangle.on) Bangle.on('charging', onCharging);
   ```
 - **Wrap Storage reads in try/catch** — emulator may not have all files
@@ -491,7 +490,7 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 
 1. Light/white background (transflective LCD efficiency)
 2. Disable HRM with `Bangle.setHRMPower(0, "appname")`
-3. Don't poll sensors unnecessarily — use `Bangle.setPollInterval(800)` for ~0.15mA saving
+3. Don't override accelerometer poll interval — firmware auto-throttles from 12.5Hz (80ms) to 1.25Hz (800ms) after 60s inactivity (confirmed in firmware source `jswrap_bangle.c`)
 4. Use `setTimeout` aligned to minute boundary (not `setInterval` or continuous loops)
 5. Cache all reads — minimize Storage/require() calls per draw
 6. Use TTL caching for infrequent data (weather: 60min, week num: by day)

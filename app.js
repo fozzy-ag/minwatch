@@ -191,7 +191,7 @@
       } catch(e) { g.setFontAlign(0, -1); }
       try {
         g.setFont("6x8", 2);
-        let sc = Bangle.getStepCount();
+        let sc = Bangle.getHealthStatus("day").steps || 0;
         let ss = sc + " steps";
         if (layoutChanged || sc !== prevSteps) {
           if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
@@ -210,7 +210,7 @@
   };
 
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
-  if (Bangle.setPollInterval) Bangle.setPollInterval(800);
+
   if (Bangle.on) Bangle.on('charging', onCharging);
   if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
 

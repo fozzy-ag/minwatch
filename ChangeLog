@@ -1,3 +1,4 @@
+0.36: Fixed step counter — switched from Bangle.getStepCount() (never resets) to Bangle.getHealthStatus("day").steps (resets at midnight), added ||0 fallback, removed setPollInterval(800) (firmware auto-throttles correctly)
 0.35: Cached font heights at init, guarded clearRect against missing Bangle.appRect
 0.34: Weather redraw skipped when data unchanged (saves ~59 redraws/hour)
 0.33: Fixed CW display (replaced unsupported Date.UTC/getUTCDay with local time), fixed layout alignment (appTop >= 24 for widget bar)

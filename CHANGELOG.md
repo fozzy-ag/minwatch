@@ -1,5 +1,10 @@
 # Minimal Watch - Changelog
 
+## v0.36
+- Fixed step counter: switched from `Bangle.getStepCount()` (never resets) to `Bangle.getHealthStatus("day").steps` (resets at midnight)
+- Added `|| 0` fallback for steps if health tracking is not enabled
+- Removed `Bangle.setPollInterval(800)` — firmware already auto-throttles from 12.5Hz to1.25Hz after 60s inactivity; manual override was causing inaccurate step counting
+
 ## v0.35
 - Cached font heights (`th`/`sh`) at init — no longer recomputed every draw call
 - Added null guard for `g.clearRect(Bangle.appRect)` — prevents crash if appRect undefined (emulator edge case)

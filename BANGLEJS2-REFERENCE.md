@@ -386,6 +386,11 @@ Version must match across ALL of these files:
 2. `apps.json` → generated from metadata.json files (run `create_apps_json.sh`)
 3. **`apps.local.json`** → generated from metadata.json files — **THIS is what the App Loader actually reads**
 
+**Two directories must be updated — forget one and the loader shows stale version:**
+- `minwatch/metadata.json`, `minwatch/apps.json`, `minwatch/apps.local.json` (repo copies)
+- `BangleApps/apps/minwatch/metadata.json` (synced copy)
+- `BangleApps/apps.json`, `BangleApps/apps.local.json` (served by loader on localhost:8080)
+
 ### `apps.local.json` vs `apps.json`
 - `loader.js` line 10: `Const.APPS_JSON_FILE = "apps.local.json";`
 - The App Loader reads **`apps.local.json`**, NOT `apps.json`

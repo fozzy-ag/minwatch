@@ -1,3 +1,4 @@
+0.39: Charging icon now event-driven only — removed redundant redraw from draw(), called once at init
 0.38: BLE connection interval set to 4s — saves ~0.3-0.4mA by overriding Espruino auto-adjustment (notifications not used, weather updates hourly)
 0.37: Event-driven step counting — switched from per-minute polling to Bangle.on('step') handler, zero overhead when idle
 0.36: Fixed step counter — switched from Bangle.getStepCount() (never resets) to Bangle.getHealthStatus("day").steps (resets at midnight), added ||0 fallback, removed setPollInterval(800) (firmware auto-throttles correctly)

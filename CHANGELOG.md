@@ -1,5 +1,9 @@
 # Minimal Watch - Changelog
 
+## v0.39
+
+- Charging icon now event-driven only — removed redundant redraw from draw(), called once at init
+
 ## v0.38
 - BLE connection interval set to 4 seconds — overrides Espruino's default auto-adjustment (7.5ms active → 200ms idle) with fixed 4000ms interval, saving ~0.3-0.4mA. Notifications not used, weather updates hourly, so 4s delay is imperceptible
 

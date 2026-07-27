@@ -205,7 +205,6 @@
         }
       } catch(e) {}
     } catch(e) {}
-    try { drawChargingIcon(); } catch(e) {}
     queueDraw();
   }
 
@@ -232,6 +231,7 @@
   Bangle.loadWidgets();
   setTimeout(Bangle.drawWidgets, 0);
   if (Bangle.isCharging) charging = Bangle.isCharging();
+  drawChargingIcon();
   onStep();
   draw();
 }

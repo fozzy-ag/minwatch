@@ -5,6 +5,7 @@
 - Based on v0.40 (date caching + battery segment tracking retained)
 - Moved event registration (charging, lcdPower, step) after Bangle.setUI — prevents events firing before UI is initialized
 - Wrapped entire init sequence in try/catch — prevents crash loop if any init step throws
+- Disabled App Loader minification — the minifier generates variable names that shadow Bangle.js globals (like `g`), causing crashes on device but not in Web IDE
 
 ## v0.41
 

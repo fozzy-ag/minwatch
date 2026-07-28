@@ -17,7 +17,8 @@
   "storage": [
     {
       "name": "minwatch.app.js",
-      "url": "app.js"
+      "url": "app.js",
+      "minify": false
     },
     {
       "name": "minwatch.img",

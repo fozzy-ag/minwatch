@@ -1,3 +1,4 @@
+0.44: Bisect step 1 — v0.37 base + v0.38's only change: NRF.setConnectionInterval(4000). v0.37 confirmed working on-device; re-adding one change at a time to find the crash trigger
 0.37: Event-driven step counting — switched from per-minute polling to Bangle.on('step') handler, zero overhead when idle
 0.36: Fixed step counter — switched from Bangle.getStepCount() (never resets) to Bangle.getHealthStatus("day").steps (resets at midnight), added ||0 fallback, removed setPollInterval(800) (firmware auto-throttles correctly)
 0.35: Cached font heights at init, guarded clearRect against missing Bangle.appRect

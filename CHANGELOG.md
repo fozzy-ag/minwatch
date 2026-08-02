@@ -1,5 +1,11 @@
 # Minimal Watch - Changelog
 
+## v0.44
+
+- v0.37 confirmed working on-device
+- Bisect step 1: v0.37 base + only change from v0.38 — `NRF.setConnectionInterval(4000)` (BLE connection interval fixed at 4s)
+- If this crashes on-device, the BLE interval override is the crash trigger
+
 ## v0.37
 - Event-driven step counting: switched from per-minute `getHealthStatus` polling to `Bangle.on('step')` handler — zero overhead when idle, step counter updates instantly on step detection
 

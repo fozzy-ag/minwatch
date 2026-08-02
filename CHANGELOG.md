@@ -1,5 +1,10 @@
 # Minimal Watch - Changelog
 
+## v0.46
+
+- Bisect step 3: v0.37 base + v0.40's date caching (`cachedDay`/`cachedDateStr` — skips locale calls on 1,439 of 1,440 daily draws) and battery segment tracking (`prevSegments` — only SPI-writes changed bar segments)
+- v0.45 confirmed the charging-icon change is safe on-device
+
 ## v0.45
 
 - Bisect step 2: v0.37 base + v0.39's charging-icon change (draw at init only, removed from draw()) — BLE interval dropped

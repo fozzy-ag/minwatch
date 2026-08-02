@@ -1,6 +1,6 @@
 # Bangle.js 2 Development Reference
 
-Living document — update as new discoveries are made. Last updated: v0.41 (2026-07-27).
+Living document — update as new discoveries are made. Last updated: v0.37 (2026-07-27).
 
 ---
 
@@ -93,34 +93,26 @@ The correct order matters:
 // 1. Disable sensors to save power
 if (Bangle.setHRMPower) Bangle.setHRMPower(0, "appname");
 
-// 2. Set BLE connection interval (if not using notifications)
-if (NRF.setConnectionInterval) NRF.setConnectionInterval(4000);
-
-// 3. Register event listeners
+// 2. Register event listeners
 if (Bangle.on) Bangle.on('charging', onCharging);
 if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
-if (Bangle.on) Bangle.on('step', onStep);
 
-// 4. Set UI mode BEFORE draw()
+// 3. Set UI mode BEFORE draw()
 Bangle.setUI({mode:"clock", remove:function() {
   if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
   if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
   if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
-  if (Bangle.removeListener) Bangle.removeListener('step', onStep);
 }, redraw:draw});
 
-// 5. Reset graphics and clear app area (guard against missing appRect)
+// 4. Reset graphics and clear app area (guard against missing appRect)
 g.reset();
 if (Bangle.appRect) g.clearRect(Bangle.appRect);
 
-// 6. Load and draw widgets (defer drawWidgets)
+// 5. Load and draw widgets (defer drawWidgets)
 Bangle.loadWidgets();
 setTimeout(Bangle.drawWidgets, 0);
 
-// 7. Initialize state from hardware, then draw
-if (Bangle.isCharging) charging = Bangle.isCharging();
-drawChargingIcon();  // event-driven: draw once at init, updated by onCharging
-onStep();            // initialize cached step count before first draw
+// 6. Initial draw
 draw();
 ```
 
@@ -196,21 +188,6 @@ function getWeather() {
 - No setup required — hardware pedometer runs independently
 - `WIDGETS.wpedom.getSteps()` also returns daily steps (from pedometer widget), but `getHealthStatus` is faster (avoids storage scan)
 - **`Bangle.getStepCount()` vs `Bangle.getHealthStatus("day").steps`**: Issue #1216 reported `getHealthStatus("day").steps` not resetting at midnight — this was a firmware bug, fixed and closed
-- **Event-driven steps** (v0.37): Use `Bangle.on('step')` to update cached step count — no per-draw health API calls needed:
-  ```js
-  let cachedSteps = 0;
-  function onStep() {
-    try { cachedSteps = Bangle.getHealthStatus("day").steps || 0; } catch(e) {}
-  }
-  // Register before first draw
-  if (Bangle.on) Bangle.on('step', onStep);
-  onStep(); // initialize cache
-  // In remove handler:
-  if (Bangle.removeListener) Bangle.removeListener('step', onStep);
-  ```
-  - `Bangle.on('step')` does **NOT** prevent power save mode (unlike `Bangle.on('accel')`)
-  - Firmware pedometer (Kionix KX022) runs independently of JS polling
-  - Savings: one `getHealthStatus()` call per minute eliminated (negligible mA, but architecturally correct)
 
 ## 11. Charging Detection
 
@@ -221,7 +198,7 @@ function getWeather() {
 - Clean up with `Bangle.removeListener('charging', onCharging)` in remove handler (NOT `removeAllListeners`)
 - Note: This is only available on Bangle.js smartwatches (not emulator)
 - **Call `isCharging()` AFTER `Bangle.setUI()`** — firmware may not have charging state ready before then
-- **Call `drawChargingIcon()` ONCE at init after `Bangle.isCharging()` check** — event handler updates it on state changes, no per-draw call needed (v0.39)
+- **Always draw charging icon OUTSIDE the outer try/catch** — if any content error occurs, the icon still renders
 - **Position icon in empty space** — below all content, avoid overlap with weather/steps text
 
 ## 12. Battery
@@ -261,7 +238,6 @@ for (let i = 0; i < 10; i++) {
 
 ## 15. Code Style & Performance
 
-- **Code reviews catch logic errors, NOT Espruino engine quirks.** Any new JS pattern (arrays, closures, block scoping, new variable types) MUST be tested on actual hardware before committing. Logical correctness on paper does not guarantee the code works on the Bangle.js 2 firmware. The `prevSegments[]` array in `drawBatteryBar` caused a crash on-device despite passing logical review — Espruino's JS engine handles arrays differently than standard V8.
 - **Cache everything**: locale, storage reads, font height measurements
 - **TTL caching**: for data that changes rarely (weather: 60min, week number: by day), avoid repeated flash reads
 - **Per-section try/catch**: one element failure shouldn't hide others
@@ -286,7 +262,6 @@ for (let i = 0; i < 10; i++) {
 - **Cache font heights at init** — `g.setFont()` + `getFontHeight()` is expensive; measure once, store in variables
 - **Cache static values at init**: `W`, `H`, `cx`, `gap`, `bh`, `th`, `sh` — never recalculate in draw()
 - **Use `g.theme.fg` / `g.theme.bg`** — hardcoded colors break on dark theme
-- **BLE connection interval**: `NRF.setConnectionInterval(interval)` — valid range 7.5ms–4000ms (BLE spec limit); default auto-adjusts 7.5ms active ↔ 200ms idle; fixed 4000ms saves ~0.3-0.4mA; NOT persisted across `save()` — must re-set via onInit (v0.38)
 
 ### Partial Redraw Pattern (v0.19)
 The single biggest battery drain is **clearing and redrawing the entire screen every 60 seconds**. The optimized approach:
@@ -337,17 +312,6 @@ function draw() {
 | Weather | When code or temp changes (~1/hr) | Zero most draws |
 | Steps | When count changes | Low — usually changes often |
 | Charging | Event-driven only | Zero overhead |
-
-**Layout change tracking**: When weather appears or disappears, the entire content area must be cleared and recentered. Track with a `prevHadWeather` flag:
-```js
-let prevHadWeather = false;
-// In draw():
-let hasWeather = w !== null;
-let layoutChanged = hasWeather !== prevHadWeather;
-prevHadWeather = hasWeather;
-if (layoutChanged) g.clearRect(0, appTop, W - 1, appTop + appH - 1);
-// Each section then checks: if (layoutChanged || value !== prev) { ... }
-```
 
 **What NOT to do**:
 - `g.reset()` on every draw — resets all state, expensive (Bangle.setUI already calls it at init)
@@ -537,7 +501,7 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 6. Use TTL caching for infrequent data (weather: 60min, week num: by day)
 7. Minimal redraw area — don't overdraw widget regions
 8. Short/efficient locale format (`1` parameter)
-9. Event-driven state detection — use `Bangle.on('step')`, `Bangle.on('charging')`, `Bangle.on('lcdPower')` instead of polling
+9. Event-driven state detection (charging) instead of polling
 10. Draw overlays (charging icon) outside main try/catch so they always render
 11. **Partial redraws** — track last values, only clear+redraw changed elements (v0.19)
 12. **Never `g.reset()` in draw()** — Bangle.setUI already calls it at init; set state explicitly per section
@@ -546,7 +510,6 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 15. **Cache static geometry** — `W`, `H`, `cx`, `gap`, `bh`, `th`, `sh` at init, never recalculate
 16. **Use `g.theme.fg` / `g.theme.bg`** — hardcoded colors break on dark theme
 17. **Skip weather redraw when unchanged** — track display string, only redraw when code or temp changes
-18. **BLE connection interval** — `NRF.setConnectionInterval(4000)` overrides Espruino auto-adjustment (7.5ms↔200ms) with fixed 4s interval; saves ~0.3-0.4mA; safe when notifications unused and weather updates hourly (v0.38)
 
 ## 20. Widget Case Study: widopenweather
 

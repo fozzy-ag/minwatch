@@ -1,9 +1,3 @@
-0.43: Converted all function declarations to let fn = function(){} — Espruino function decls are global (ignore block scope), so stale closures from previous load referenced freed variables causing the reload crash loop (antonclk pattern)
-0.42: Based on v0.40 — moved event registration after Bangle.setUI, wrapped entire init in try/catch, disabled App Loader minification (fixes on-device crash)
-0.41: Reverted v0.40 changes (date caching, battery segment tracking) — caused crash on device
-0.40: Cache date string at day level, battery bar redraws only changed segments
-0.39: Charging icon now event-driven only — removed redundant redraw from draw(), called once at init
-0.38: BLE connection interval set to 4s — saves ~0.3-0.4mA by overriding Espruino auto-adjustment (notifications not used, weather updates hourly)
 0.37: Event-driven step counting — switched from per-minute polling to Bangle.on('step') handler, zero overhead when idle
 0.36: Fixed step counter — switched from Bangle.getStepCount() (never resets) to Bangle.getHealthStatus("day").steps (resets at midnight), added ||0 fallback, removed setPollInterval(800) (firmware auto-throttles correctly)
 0.35: Cached font heights at init, guarded clearRect against missing Bangle.appRect

@@ -1,34 +1,5 @@
 # Minimal Watch - Changelog
 
-## v0.43
-
-- Converted all function declarations to `let fn = function(){}` — Espruino `function` declarations are **global**, ignoring `{...}` block scope
-- On unload/reload, stale global functions kept closures over freed block-scoped `let` variables → crash loop on every load from Storage (works in Web IDE because each session is a fresh global scope)
-- Matches the reference `antonclk` clock pattern: functions must be defined via `let` so everything disappears on unload
-
-## v0.42
-
-- Based on v0.40 (date caching + battery segment tracking retained)
-- Moved event registration (charging, lcdPower, step) after Bangle.setUI — prevents events firing before UI is initialized
-- Wrapped entire init sequence in try/catch — prevents crash loop if any init step throws
-- Disabled App Loader minification — the minifier generates variable names that shadow Bangle.js globals (like `g`), causing crashes on device but not in Web IDE
-
-## v0.41
-
-- Reverted v0.40 changes — caused crash on device
-
-## v0.40
-
-- Cache date string at day level — eliminates locale calls and overflow checks on 1,439 of 1,440 daily draws
-- Battery bar redraws only changed segments — tracks per-segment color, only SPI-writes segments that differ
-
-## v0.39
-
-- Charging icon now event-driven only — removed redundant redraw from draw(), called once at init
-
-## v0.38
-- BLE connection interval set to 4 seconds — overrides Espruino's default auto-adjustment (7.5ms active → 200ms idle) with fixed 4000ms interval, saving ~0.3-0.4mA. Notifications not used, weather updates hourly, so 4s delay is imperceptible
-
 ## v0.37
 - Event-driven step counting: switched from per-minute `getHealthStatus` polling to `Bangle.on('step')` handler — zero overhead when idle, step counter updates instantly on step detection
 

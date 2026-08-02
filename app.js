@@ -18,9 +18,6 @@
   let cachedSteps = 0;
   let prevHadWeather = false;
   let prevWeatherStr = "";
-  let cachedDay = -1;
-  let cachedDateStr = "";
-  let prevSegments = [];
 
   let W = g.getWidth(), H = g.getHeight();
   let cx = W >> 1;
@@ -29,7 +26,7 @@
   let th = g.setFont("6x8", 4).getFontHeight();
   let sh = g.setFont("6x8", 2).getFontHeight();
 
-  let queueDraw = function() {
+  function queueDraw() {
     if (drawTimeout) clearTimeout(drawTimeout);
     drawTimeout = setTimeout(function() {
       drawTimeout = undefined;
@@ -37,7 +34,7 @@
     }, Math.max(1, 60000 - (Date.now() % 60000)));
   }
 
-  let getWeekNumber = function(d) {
+  function getWeekNumber(d) {
     let key = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
     if (key === cachedWeekKey) return cachedWeekNum;
     let date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -49,7 +46,7 @@
     return cachedWeekNum;
   }
 
-  let getWeather = function() {
+  function getWeather() {
     let now = Date.now();
     if (cachedWeather !== null && now - cachedWeatherTime < 3600000) return cachedWeather;
     let wd = null;
@@ -60,11 +57,11 @@
     return cachedWeather;
   }
 
-  let onStep = function() {
+  function onStep() {
     try { cachedSteps = Bangle.getHealthStatus("day").steps || 0; } catch(e) {}
   }
 
-  let drawWeatherIcon = function(ox, oy, code) {
+  function drawWeatherIcon(ox, oy, code) {
     if (code === undefined || code === null) return;
     g.setColor(g.theme.fg);
     if (code === 800) {
@@ -107,20 +104,15 @@
     }
   }
 
-  let drawBatteryBar = function(y, filled) {
+  function drawBatteryBar(y, filled) {
     for (let i = 0; i < 10; i++) {
-      let shouldFill = i < filled;
-      let color = shouldFill ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618;
-      if (prevSegments[i] !== color) {
-        g.setColor(color);
-        let x = cx - 59 + i * 12;
-        g.fillRect(x, y, x + 9, y + 6);
-        prevSegments[i] = color;
-      }
+      g.setColor(i < filled ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618);
+      let x = cx - 59 + i * 12;
+      g.fillRect(x, y, x + 9, y + 6);
     }
   }
 
-  let drawChargingIcon = function() {
+  function drawChargingIcon() {
     let cx2 = W - 12, cy2 = 166;
     g.setColor(g.theme.bg);
     g.fillRect(W - 22, 158, W, 175);
@@ -132,7 +124,7 @@
     }
   }
 
-  let draw = function() {
+  function draw() {
     try {
       let appTop = Bangle.appRect ? Math.max(Bangle.appRect.y, 24) : 24;
       let appH = Bangle.appRect ? Math.min(Bangle.appRect.h, H - 24) : H - 24;
@@ -158,14 +150,9 @@
       } catch(e) {}
       try {
         g.setFont("6x8", 2);
-        let day = date.getDate();
-        if (day !== cachedDay) {
-          cachedDateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
-          if (g.stringWidth(cachedDateStr) > W - 10) cachedDateStr = lc.date(date, 1);
-          if (g.stringWidth(cachedDateStr) > W - 10) cachedDateStr = lc.dow(date, 1);
-          cachedDay = day;
-        }
-        let dateStr = cachedDateStr;
+        let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
+        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
+        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
         if (layoutChanged || dateStr !== prevDateStr) {
           if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
           g.drawString(dateStr, cx, y, true);
@@ -218,6 +205,7 @@
         }
       } catch(e) {}
     } catch(e) {}
+    try { drawChargingIcon(); } catch(e) {}
     queueDraw();
   }
 
@@ -226,28 +214,23 @@
     else { if (drawTimeout) { clearTimeout(drawTimeout); drawTimeout = undefined; } }
   };
 
-  try {
-    if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
-    if (NRF.setConnectionInterval) NRF.setConnectionInterval(4000);
+  if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
 
-    Bangle.setUI({mode:"clock", remove:function() {
-      if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
-      if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
-      if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
-      if (Bangle.removeListener) Bangle.removeListener('step', onStep);
-    }, redraw:draw});
-    g.reset();
-    if (Bangle.appRect) g.clearRect(Bangle.appRect);
-    Bangle.loadWidgets();
-    setTimeout(Bangle.drawWidgets, 0);
+  if (Bangle.on) Bangle.on('charging', onCharging);
+  if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
+  if (Bangle.on) Bangle.on('step', onStep);
 
-    if (Bangle.on) Bangle.on('charging', onCharging);
-    if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
-    if (Bangle.on) Bangle.on('step', onStep);
-
-    if (Bangle.isCharging) charging = Bangle.isCharging();
-    drawChargingIcon();
-    onStep();
-    draw();
-  } catch(e) {}
+  Bangle.setUI({mode:"clock", remove:function() {
+    if (drawTimeout !== undefined) { clearTimeout(drawTimeout); drawTimeout = undefined; }
+    if (Bangle.removeListener) Bangle.removeListener('charging', onCharging);
+    if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
+    if (Bangle.removeListener) Bangle.removeListener('step', onStep);
+  }, redraw:draw});
+  g.reset();
+  if (Bangle.appRect) g.clearRect(Bangle.appRect);
+  Bangle.loadWidgets();
+  setTimeout(Bangle.drawWidgets, 0);
+  if (Bangle.isCharging) charging = Bangle.isCharging();
+  onStep();
+  draw();
 }

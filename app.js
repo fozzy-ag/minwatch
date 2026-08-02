@@ -18,8 +18,6 @@
   let cachedSteps = 0;
   let prevHadWeather = false;
   let prevWeatherStr = "";
-  let cachedDay = -1;
-  let cachedDateStr = "";
   let prevSegments = [];
 
   let W = g.getWidth(), H = g.getHeight();
@@ -158,14 +156,9 @@
       } catch(e) {}
       try {
         g.setFont("6x8", 2);
-        let day = date.getDate();
-        if (day !== cachedDay) {
-          cachedDateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
-          if (g.stringWidth(cachedDateStr) > W - 10) cachedDateStr = lc.date(date, 1);
-          if (g.stringWidth(cachedDateStr) > W - 10) cachedDateStr = lc.dow(date, 1);
-          cachedDay = day;
-        }
-        let dateStr = cachedDateStr;
+        let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
+        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
+        if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
         if (layoutChanged || dateStr !== prevDateStr) {
           if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
           g.drawString(dateStr, cx, y, true);

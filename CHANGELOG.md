@@ -1,5 +1,11 @@
 # Minimal Watch - Changelog
 
+## v0.47
+
+- Isolate step 1: v0.45 base + battery segment tracking (`prevSegments`) only — date caching removed
+- v0.46 confirmed v0.40's changes blank the content at minute update; the visible bar is a pre-existing debugging element, not part of v0.40
+- Testing which v0.40 sub-change breaks rendering on device
+
 ## v0.46
 
 - Bisect step 3: v0.37 base + v0.40's date caching (`cachedDay`/`cachedDateStr` — skips locale calls on 1,439 of 1,440 daily draws) and battery segment tracking (`prevSegments` — only SPI-writes changed bar segments)

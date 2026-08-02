@@ -1,5 +1,10 @@
 # Minimal Watch - Changelog
 
+## v0.48
+
+- Removed the redundant full-width `clearRect(0, y, W-1, y+th-1)` before the time `drawString` — `drawString(..., true)` already clears exactly its own character cells
+- The full-width band clear is the suspected cause of the pre-existing "debug bar" artifact that appeared on the first scheduled minute re-draw (0-1 min fine, minute 1-2 shows a bar, correct after that)
+
 ## v0.47
 
 - Isolate step 1: v0.45 base + battery segment tracking (`prevSegments`) only — date caching removed

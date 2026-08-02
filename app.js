@@ -148,7 +148,6 @@
         g.setFont("6x8", 4);
         let ts = lc.time(date, 1);
         if (layoutChanged || ts !== prevTimeStr) {
-          if (!layoutChanged) g.clearRect(0, y, W - 1, y + th - 1);
           g.drawString(ts, cx, y, true);
           prevTimeStr = ts;
         }

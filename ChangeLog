@@ -1,3 +1,4 @@
+0.49: Full content-area clear + redraw on first scheduled draw only — the bar artifact is a partial-band LCD flush after a ~60s static period; full-area flushes are immune. Partial redraws resume from minute 2. Also reset prevSegments on full clear (latent blank-bar bug)
 0.48: Removed redundant full-width clearRect before time drawString — drawString(...,true) already clears its own cell box; full-width band op is the suspected cause of the pre-existing debug bar artifact on the first minute re-draw
 0.47: Isolate step 1 — v0.45 base + battery segment tracking (prevSegments) only, date caching removed. v0.46 confirmed v0.40's changes blank the content at minute update; testing which of the two sub-changes breaks it
 0.46: Bisect step 3 — v0.37 base + v0.40's date caching (cachedDay/cachedDateStr) and battery segment tracking (prevSegments). v0.45 confirmed charging-icon change is safe

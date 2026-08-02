@@ -19,6 +19,7 @@
   let prevHadWeather = false;
   let prevWeatherStr = "";
   let prevSegments = [];
+  let firstScheduled = false;
 
   let W = g.getWidth(), H = g.getHeight();
   let cx = W >> 1;
@@ -141,13 +142,15 @@
       let y = appTop + (appH - totalH) / 2;
       let layoutChanged = hasWeather !== prevHadWeather;
       prevHadWeather = hasWeather;
+      let fullClear = layoutChanged || firstScheduled;
+      firstScheduled = false;
       g.setFontAlign(0, -1);
       g.setColor(g.theme.fg);
-      if (layoutChanged) g.clearRect(0, appTop, W - 1, appTop + appH - 1);
+      if (fullClear) g.clearRect(0, appTop, W - 1, appTop + appH - 1);
       try {
         g.setFont("6x8", 4);
         let ts = lc.time(date, 1);
-        if (layoutChanged || ts !== prevTimeStr) {
+        if (fullClear || ts !== prevTimeStr) {
           g.drawString(ts, cx, y, true);
           prevTimeStr = ts;
         }
@@ -158,8 +161,8 @@
         let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
         if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
         if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
-        if (layoutChanged || dateStr !== prevDateStr) {
-          if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
+        if (fullClear || dateStr !== prevDateStr) {
+          if (!fullClear) g.clearRect(0, y, W - 1, y + sh - 1);
           g.drawString(dateStr, cx, y, true);
           prevDateStr = dateStr;
         }
@@ -168,8 +171,8 @@
       try {
         g.setFont("6x8", 2);
         let cw = getWeekNumber(date);
-        if (layoutChanged || cw !== prevCW) {
-          if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
+        if (fullClear || cw !== prevCW) {
+          if (!fullClear) g.clearRect(0, y, W - 1, y + sh - 1);
           g.drawString("CW " + cw, cx, y, true);
           prevCW = cw;
         }
@@ -177,8 +180,9 @@
       } catch(e) { g.setFontAlign(0, -1); }
       try {
         let bat = Math.round(E.getBattery() / 10);
-        if (layoutChanged || bat !== prevBat) {
-          if (!layoutChanged) g.clearRect(cx - 59, y, cx + 60, y + bh - 1);
+        if (fullClear || bat !== prevBat) {
+          if (fullClear) prevSegments = [];
+          if (!fullClear) g.clearRect(cx - 59, y, cx + 60, y + bh - 1);
           drawBatteryBar(y, bat);
           prevBat = bat;
         }
@@ -187,8 +191,8 @@
       try {
         if (hasWeather) {
           let wstr = w.code + "|" + Math.round(w.temp - 273.15);
-          if (layoutChanged || wstr !== prevWeatherStr) {
-            if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh + 7);
+          if (fullClear || wstr !== prevWeatherStr) {
+            if (!fullClear) g.clearRect(0, y, W - 1, y + sh + 7);
             if (w.code !== undefined) drawWeatherIcon(cx - 24, y + 8, w.code);
             g.setFontAlign(-1, -1);
             g.setFont("6x8", 2);
@@ -203,8 +207,8 @@
         g.setFont("6x8", 2);
         let sc = cachedSteps;
         let ss = sc + " steps";
-        if (layoutChanged || sc !== prevSteps) {
-          if (!layoutChanged) g.clearRect(0, y, W - 1, y + sh - 1);
+        if (fullClear || sc !== prevSteps) {
+          if (!fullClear) g.clearRect(0, y, W - 1, y + sh - 1);
           g.drawString(ss, cx, y, true);
           prevSteps = sc;
         }
@@ -238,4 +242,5 @@
   drawChargingIcon();
   onStep();
   draw();
+  firstScheduled = true;
 }

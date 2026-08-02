@@ -1,5 +1,13 @@
 # Minimal Watch - Changelog
 
+## v0.49
+
+- Driver analysis (Espruino `lcd_memlcd.c`): the Bangle.js 2 display is buffered, and on idle only the **modified row range** is flushed over SPI (partial-band flush). Full-area flushes are immune to the artifact
+- The bar is a partially-flushed row band after a ~60s static period — self-corrects on the next flush. v0.47 showed it full-width (band cleared full-width), v0.48 time-field width (only string-box pixels changed)
+- Fix: full content-area clear + redraw on the **first scheduled draw only**, then partial redraws resume
+- Also fixed a latent bug: reset `prevSegments` on full clear so the battery bar always fully redraws (its per-segment skip would otherwise leave it blank after the full-area clear)
+- Note: partial vs full redraw is effectively free battery-wise (~8KB SPI/min extra is microseconds of SPI activity)
+
 ## v0.48
 
 - Removed the redundant full-width `clearRect(0, y, W-1, y+th-1)` before the time `drawString` — `drawString(..., true)` already clears exactly its own character cells

@@ -1,12 +1,21 @@
 # Minimal Watch - Changelog
 
+## v0.51
+
+- User report: the light/blank state still recurs "on and off", not just at the first minute, and the redraw no longer seemed locked to the minute change
+- Cause: since v0.31, `onLcdPower(false)` **cleared the draw timeout**, so while the LCD was blanked (after the ~20s idle power-off) no minute-boundary redraw ran — the panel's time went stale until the next wake
+- Fix: the minute-aligned redraw (`queueDraw` = `60000 - Date.now()%60000`) now keeps running **even while the LCD is off**, so the panel is always updated at the exact minute change; the shown minute always matches the real minute
+- Wake (`lcdPower on`) still triggers an immediate full redraw for fresh widgets/battery/weather
+- Battery cost of one draw per minute while off is negligible (~microseconds of SPI)
+- Note: the blank after ~20s idle is the firmware's LCD power-off (battery-saving, accepted); the panel showing the wrong minute on wake was the app-side issue fixed here
+
 ## v0.50
 
 - User test of v0.49 made things **worse**: the whole screen went LIGHT after the first minute (dark theme, always-on display); only the time reappeared when re-drawn at the next minute. The rest of the content stayed bright
-- Reframed root cause: this is not a flush/code artifact — the MIP display's **undriven natural state is LIGHT**. Dark pixels decay toward light during static periods because EXTCOMIN maintenance runs at only 1.25Hz in power-save (poll auto-throttles 12.5Hz → 1.25Hz after 60s idle, while the backlight is off). Only re-driven pixels hold their state — which is exactly why the time field (redrawn every minute) stayed visible and everything else faded
-- Fix: **full content-area clear + redraw every minute** so all pixels are re-driven each minute, matching the time field's proven behavior. Wake (`lcdPower on`) now triggers an immediate full redraw instead of deferring to the next minute
-- Battery impact is negligible: ~10KB SPI per minute is microseconds of SPI activity
+- Final root cause (confirmed with the user): the persistent dark-theme "white background" is **not a draw bug**. The Bangle.js 2 firmware powers the LCD off after ~20s of inactivity (`DEFAULT_LCD_POWER_TIMEOUT 20000`, jswrap_bangle.c:682) by dropping the DISP pin (jswrap_bangle.c:2183); the LPM013M126 memory-in-pixel panel then shows its **natural white state**. The watchface itself renders correctly on load and on every wake. Light theme "works" only because white is the panel's natural state
+- Fix: **full content-area clear + redraw every minute** so all pixels are re-driven each minute, and wake (`lcdPower on`) triggers an immediate full redraw instead of deferring to the next minute. Battery impact is negligible (~10KB SPI per minute is microseconds of SPI activity)
 - Removed the `prev*` partial-redraw tracking (dead code with full redraws) and the `firstScheduled` mechanism from v0.49
+- Note: earlier partial-flush and pixel-decay/EXTCOMIN theories were ruled out by on-device tests
 
 ## v0.49
 

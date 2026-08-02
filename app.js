@@ -175,7 +175,6 @@
 
   let onLcdPower = function(on) {
     if (on) draw();
-    else { if (drawTimeout) { clearTimeout(drawTimeout); drawTimeout = undefined; } }
   };
 
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");

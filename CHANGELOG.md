@@ -1,5 +1,13 @@
 # Minimal Watch - Changelog
 
+## v0.50
+
+- User test of v0.49 made things **worse**: the whole screen went LIGHT after the first minute (dark theme, always-on display); only the time reappeared when re-drawn at the next minute. The rest of the content stayed bright
+- Reframed root cause: this is not a flush/code artifact — the MIP display's **undriven natural state is LIGHT**. Dark pixels decay toward light during static periods because EXTCOMIN maintenance runs at only 1.25Hz in power-save (poll auto-throttles 12.5Hz → 1.25Hz after 60s idle, while the backlight is off). Only re-driven pixels hold their state — which is exactly why the time field (redrawn every minute) stayed visible and everything else faded
+- Fix: **full content-area clear + redraw every minute** so all pixels are re-driven each minute, matching the time field's proven behavior. Wake (`lcdPower on`) now triggers an immediate full redraw instead of deferring to the next minute
+- Battery impact is negligible: ~10KB SPI per minute is microseconds of SPI activity
+- Removed the `prev*` partial-redraw tracking (dead code with full redraws) and the `firstScheduled` mechanism from v0.49
+
 ## v0.49
 
 - Driver analysis (Espruino `lcd_memlcd.c`): the Bangle.js 2 display is buffered, and on idle only the **modified row range** is flushed over SPI (partial-band flush). Full-area flushes are immune to the artifact

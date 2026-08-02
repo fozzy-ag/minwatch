@@ -29,7 +29,7 @@
   let th = g.setFont("6x8", 4).getFontHeight();
   let sh = g.setFont("6x8", 2).getFontHeight();
 
-  function queueDraw() {
+  let queueDraw = function() {
     if (drawTimeout) clearTimeout(drawTimeout);
     drawTimeout = setTimeout(function() {
       drawTimeout = undefined;
@@ -37,7 +37,7 @@
     }, Math.max(1, 60000 - (Date.now() % 60000)));
   }
 
-  function getWeekNumber(d) {
+  let getWeekNumber = function(d) {
     let key = d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
     if (key === cachedWeekKey) return cachedWeekNum;
     let date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -49,7 +49,7 @@
     return cachedWeekNum;
   }
 
-  function getWeather() {
+  let getWeather = function() {
     let now = Date.now();
     if (cachedWeather !== null && now - cachedWeatherTime < 3600000) return cachedWeather;
     let wd = null;
@@ -60,11 +60,11 @@
     return cachedWeather;
   }
 
-  function onStep() {
+  let onStep = function() {
     try { cachedSteps = Bangle.getHealthStatus("day").steps || 0; } catch(e) {}
   }
 
-  function drawWeatherIcon(ox, oy, code) {
+  let drawWeatherIcon = function(ox, oy, code) {
     if (code === undefined || code === null) return;
     g.setColor(g.theme.fg);
     if (code === 800) {
@@ -107,7 +107,7 @@
     }
   }
 
-  function drawBatteryBar(y, filled) {
+  let drawBatteryBar = function(y, filled) {
     for (let i = 0; i < 10; i++) {
       let shouldFill = i < filled;
       let color = shouldFill ? (filled <= 2 ? 0xF800 : filled <= 4 ? 0xFE60 : 0x07E0) : 0xC618;
@@ -120,7 +120,7 @@
     }
   }
 
-  function drawChargingIcon() {
+  let drawChargingIcon = function() {
     let cx2 = W - 12, cy2 = 166;
     g.setColor(g.theme.bg);
     g.fillRect(W - 22, 158, W, 175);
@@ -132,7 +132,7 @@
     }
   }
 
-  function draw() {
+  let draw = function() {
     try {
       let appTop = Bangle.appRect ? Math.max(Bangle.appRect.y, 24) : 24;
       let appH = Bangle.appRect ? Math.min(Bangle.appRect.h, H - 24) : H - 24;

@@ -1,5 +1,11 @@
 # Minimal Watch - Changelog
 
+## v0.43
+
+- Converted all function declarations to `let fn = function(){}` — Espruino `function` declarations are **global**, ignoring `{...}` block scope
+- On unload/reload, stale global functions kept closures over freed block-scoped `let` variables → crash loop on every load from Storage (works in Web IDE because each session is a fresh global scope)
+- Matches the reference `antonclk` clock pattern: functions must be defined via `let` so everything disappears on unload
+
 ## v0.42
 
 - Based on v0.40 (date caching + battery segment tracking retained)

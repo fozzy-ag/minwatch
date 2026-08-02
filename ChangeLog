@@ -1,3 +1,4 @@
+0.43: Converted all function declarations to let fn = function(){} — Espruino function decls are global (ignore block scope), so stale closures from previous load referenced freed variables causing the reload crash loop (antonclk pattern)
 0.42: Based on v0.40 — moved event registration after Bangle.setUI, wrapped entire init in try/catch, disabled App Loader minification (fixes on-device crash)
 0.41: Reverted v0.40 changes (date caching, battery segment tracking) — caused crash on device
 0.40: Cache date string at day level, battery bar redraws only changed segments

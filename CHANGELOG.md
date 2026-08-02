@@ -1,5 +1,11 @@
 # Minimal Watch - Changelog
 
+## v0.45
+
+- Bisect step 2: v0.37 base + v0.39's charging-icon change (draw at init only, removed from draw()) — BLE interval dropped
+- v0.44 confirmed the crash trigger: `NRF.setConnectionInterval(4000)` at init breaks the clock on load
+- BLE interval battery win (~0.3-0.4mA) sacrificed; may revisit with a deferred variant later
+
 ## v0.44
 
 - v0.37 confirmed working on-device

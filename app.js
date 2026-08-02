@@ -205,7 +205,6 @@
         }
       } catch(e) {}
     } catch(e) {}
-    try { drawChargingIcon(); } catch(e) {}
     queueDraw();
   }
 
@@ -215,7 +214,6 @@
   };
 
   if (Bangle.setHRMPower) Bangle.setHRMPower(0, "minwatch");
-  if (NRF.setConnectionInterval) NRF.setConnectionInterval(4000);
 
   if (Bangle.on) Bangle.on('charging', onCharging);
   if (Bangle.on) Bangle.on('lcdPower', onLcdPower);
@@ -232,6 +230,7 @@
   Bangle.loadWidgets();
   setTimeout(Bangle.drawWidgets, 0);
   if (Bangle.isCharging) charging = Bangle.isCharging();
+  drawChargingIcon();
   onStep();
   draw();
 }

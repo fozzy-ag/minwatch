@@ -1,5 +1,18 @@
 # Minimal Watch - Changelog
 
+## v0.53
+
+- Re-applied event-driven charging icon (drawn only at init and on charging events, not every minute)
+- Charging icon zone (x 154–176, y 158–175) is excluded from the per-minute clear, so the icon persists without being re-drawn; saves one tiny draw per minute
+- Content clear is capped at y 157 plus a strip clear x 0–154 / y 158–175: with weather shown, the steps row reaches y≈156–172, so it must be cleared each minute to avoid stale pixels when the step count changes width (e.g. 4 → 5 digits) or weather appears/disappears
+- Verified via minwatchtest builds (0.0.1–0.0.4): icon persists through minute changes, steps/weather redraw cleanly, no red background
+
+## v0.52
+
+- User report: red background appeared across the whole content area after a minute change
+- Root cause: the default `widbat` widget calls `g.setBgColor("#f00")` when battery is <20% and never restores the previous color; on the next minute the content-area `clearRect` filled the panel red. Emulator screenshot decode showed red already present at the start of the second frame, before the app's own clear
+- Fix: `g.setBgColor(g.theme.bg)` is set explicitly before the content-area clear, so the red persists only within the widget's own region
+
 ## v0.51
 
 - User report: the light/blank state still recurs "on and off", not just at the first minute, and the redraw no longer seemed locked to the minute change

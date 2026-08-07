@@ -131,7 +131,8 @@
       g.setFontAlign(0, -1);
       g.setColor(g.theme.fg);
       g.setBgColor(g.theme.bg);
-      g.clearRect(0, appTop, W - 1, appTop + appH - 1);
+      g.clearRect(0, appTop, W - 1, 157);
+      g.clearRect(0, 158, W - 22, 175);
       try {
         g.setFont("6x8", 4);
         g.drawString(lc.time(date, 1), cx, y, true);
@@ -169,7 +170,6 @@
         g.setFont("6x8", 2);
         g.drawString(cachedSteps + " steps", cx, y, true);
       } catch(e) {}
-      try { drawChargingIcon(); } catch(e) {}
     } catch(e) {}
     queueDraw();
   }

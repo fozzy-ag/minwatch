@@ -130,6 +130,7 @@
       let y = appTop + (appH - totalH) / 2;
       g.setFontAlign(0, -1);
       g.setColor(g.theme.fg);
+      g.setBgColor(g.theme.bg);
       g.clearRect(0, appTop, W - 1, appTop + appH - 1);
       try {
         g.setFont("6x8", 4);

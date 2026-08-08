@@ -3,7 +3,7 @@
   "name": "Minimal Watch",
   "shortName": "Minimal Watch",
   "version": "0.54",
-  "description": "A minimal, battery-saving watchface showing time, date, week number, battery bar, steps, and weather. Requires owmweather for weather data.",
+  "description": "A minimal, battery-saving watchface for Bangle.js 2 showing time, date, calendar week, battery bar, step count, weather, and a charging indicator. Requires the owmweather app for weather data.",
   "icon": "app.png",
   "type": "clock",
   "tags": "clock",

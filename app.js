@@ -121,6 +121,7 @@
 
   function draw() {
     try {
+      g.reset();
       let appTop = Bangle.appRect ? Math.max(Bangle.appRect.y, 24) : 24;
       let appH = Bangle.appRect ? Math.min(Bangle.appRect.h, H - 24) : H - 24;
       let date = new Date();

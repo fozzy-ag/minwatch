@@ -1,5 +1,11 @@
 # Minimal Watch - Changelog
 
+## v0.54
+
+- Added `g.reset()` as the first line of `draw()` — resets the shared graphics state (color/font/align/clip) to theme defaults before drawing, so any state mutated by widgets or other apps (e.g. widbat leaving `bgColor` poisoned at <20% battery) can't leak into minwatch's rendering
+- This is the structural guard for the whole class of widget-state-pollution bugs (the v0.52 red-background fix remains as belt-and-suspenders)
+- No visual change: rendering is identical to v0.53 (verified via minwatchreset test build 0.0.1)
+
 ## v0.53
 
 - Re-applied event-driven charging icon (drawn only at init and on charging events, not every minute)

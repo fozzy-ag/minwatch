@@ -15,7 +15,7 @@ A minimal, battery-saving watchface for [Bangle.js 2](https://banglejs.com/) sma
 ## Design Philosophy
 
 - **Transflective LCD optimized** — light/white background reflects ambient light, reducing backlight need and saving battery
-- **Minimal redraws** — updates once per minute via `setInterval`
+- **Minimal redraws** — updates once per minute (setTimeout aligned to the minute)
 - **Power saving** — HRM disabled, event-driven charging detection, cached storage reads
 - **Robust** — per-element error isolation, one element failing won't hide others
 
@@ -58,9 +58,9 @@ No configuration needed. Weather requires the owmweather app to be installed and
 
 ## Version History
 
-See [ChangeLog](ChangeLog) for full version history.
+See [CHANGELOG.md](CHANGELOG.md) for full version history.
 
-Current version: **0.37**
+Current version: **0.53**
 
 ## License
 

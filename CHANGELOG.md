@@ -1,5 +1,15 @@
 # Minimal Watch - Changelog
 
+## v0.55
+
+- Applied the deep code review findings (vs. official `_example_clock`, `antonclk`, `widbat` and Espruino Discussion #1800) — all low-risk, no visual change at default geometry:
+- **Anchored the clear rects and charging-icon zone to `appRect`** — the hardcoded `157/158/175` values are replaced with `appBottom = appTop + appH` (icon zone = x 154–176, y `appBottom-18`–`appBottom-1`); `appTop`/`appH` are now cached once after `setUI()` via `cacheAppRect()`, so bottom widgets or a non-24px widget bar no longer misplace clears
+- **Clamped the step count display to 99999** — `"99999 steps"` (11 chars × 12px = 132px, x22–153) is the widest string that stays clear of the icon zone; 6+ digits would have invaded the protected margin and 7+ digits the bolt icon
+- **Moved the `y` advance out of each section's try/catch** — layout always progresses even if an element throws, instead of downstream sections drawing over the failed element
+- **Fixed the vertical-centering gap count** — `gap * (hasWeather ? 5 : 4)` instead of a hardcoded `gap * 5`; without weather there are 4 gaps between 5 elements, not 5 (the block was 8px over-tall, shifting content up 4px)
+- **Redraw the charging icon on every `draw()`** — `drawChargingIcon()` now runs at the end of each redraw (outside the try/catch), so a full redraw can never leave the icon zone stale
+- **Throttled the step event read to once per second** — `onStep` fired on every pedometer event; the `getHealthStatus("day")` read is now rate-limited (`lastStepRead`), cutting storage reads while walking
+
 ## v0.54
 
 - Added `g.reset()` as the first line of `draw()` — resets the shared graphics state (color/font/align/clip) to theme defaults before drawing, so any state mutated by widgets or other apps (e.g. widbat leaving `bgColor` poisoned at <20% battery) can't leak into minwatch's rendering

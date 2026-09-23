@@ -1,6 +1,6 @@
 # Bangle.js 2 Development Reference
 
-Living document — update as new discoveries are made. Last updated: v0.37 (2026-07-27).
+Living document — update as new discoveries are made. Last updated: v0.55 (2026-08-08).
 
 ---
 
@@ -55,6 +55,7 @@ Living document — update as new discoveries are made. Last updated: v0.37 (202
   let y = appTop + (appH - totalH) / 2;
   ```
 - **Gap count must match element count**: 6 elements = 5 gaps, 5 elements = 4 gaps. Using wrong count shifts layout.
+- **Anchor the charging-icon zone and clear rects to `appBottom = appTop + appH`** — never hardcode `157/158/175`; derive icon zone as x `W-22`–`W`, y `appBottom-18`–`appBottom-1` (v0.55)
 - **Horizontal centering**: Use `g.setFontAlign(0, -1)` then draw at `x = W/2` (or `W >> 1`)
 - **Weather icons extend ~8px above text position** — account for this in total height calculation (add 8 to weather section height)
 - **Group centering**: When icon + text are a group (e.g., weather), center the group as a whole, not individually
@@ -268,7 +269,7 @@ The single biggest battery drain is **clearing and redrawing the entire screen e
 
 1. **Track last-drawn values** — only redraw when the value actually changed
 2. **Clear only the affected region** — `g.fillRect()` behind the changed element, not the full 176×176 screen
-3. **Set state explicitly** — don't call `g.reset()` in draw(); set font/color/align per section
+3. ~~Set state explicitly — don't call `g.reset()` in draw()~~ **SUPERSEDED in v0.54**: `g.reset()` IS now called as the first line of `draw()` — it is cheap on this firmware and is the structural guard against widget/app state pollution (see Section 21)
 
 ```js
 let prevTimeStr = "";
@@ -314,7 +315,7 @@ function draw() {
 | Charging | Event-driven only | Zero overhead |
 
 **What NOT to do**:
-- `g.reset()` on every draw — resets all state, expensive (Bangle.setUI already calls it at init)
+- ~~`g.reset()` on every draw — resets all state, expensive~~ **SUPERSEDED in v0.54**: `g.reset()` at the top of `draw()` is now the recommended structural guard (see Section 21); the "expensive" concern was theoretical — the firmware reset is cheap and prevents state leaks
 - `g.fillRect(0, appTop, W, H)` on every draw — clears 176×152 pixels for nothing
 - `g.setFont("6x8", 4); g.setFont("6x8", 2)` on every draw — cache font heights, set font only when switching
 - Per-section try/catch when sections don't throw — consolidate into outer catch
@@ -504,7 +505,7 @@ Valid dependency types: `"app"`, `"module"`, `"widget"`, `"type"`
 9. Event-driven state detection (charging) instead of polling
 10. Draw overlays (charging icon) outside main try/catch so they always render
 11. **Partial redraws** — track last values, only clear+redraw changed elements (v0.19)
-12. **Never `g.reset()` in draw()** — Bangle.setUI already calls it at init; set state explicitly per section
+12. ~~**Never `g.reset()` in draw()**~~ **SUPERSEDED in v0.54** — `g.reset()` at the top of `draw()` is the recommended structural guard against widget/app state pollution (cheap, proven: fixes the widbat `bgColor` leak class)
 13. **Never full-screen clear per draw** — clear only the region behind the changed element
 14. **Cache font heights at init** — don't call `g.setFont()`/`getFontHeight()` per draw
 15. **Cache static geometry** — `W`, `H`, `cx`, `gap`, `bh`, `th`, `sh` at init, never recalculate
@@ -556,6 +557,23 @@ widopenweather/
 - **widcw** by avanc — calendar week widget (header/content pattern)
 - **widcal** by rigrig — calendar widget (layout template)
 - **owmweather** by halemmerich — OWM weather provider (icon drawing code)
+
+## 21. Deep Code Review Findings (v0.55)
+
+Full review pass on 2026-08-08, comparing minwatch against the official `apps/_example_clock/app.js`, `apps/antonclk/app.js`, `apps/widbat/widget.js`, the Espruino Widgets docs and Discussion #1800 ("Widget affecting screen positioning"). All six applied in v0.55; no visual change at default geometry.
+
+1. **Hardcoded clear/icon rects (Medium → FIXED)** — `clearRect(0, appTop, W-1, 157)` + `clearRect(0, 158, W-22, 175)` and `drawChargingIcon`'s `fillRect(W-22, 158, W, 175)` hardcoded `157/158/175`. If `appRect` differs (bottom widgets, different widget-bar height) the clears misplace and can overwrite widgets. Fix: `appBottom = appTop + appH` cached once after `setUI()` via `cacheAppRect()`; clears are `(0, appTop, W-1, appBottom-19)` + `(0, appBottom-18, W-23, appBottom-1)`; icon zone x `W-22`–`W`, y `appBottom-18`–`appBottom-1`. Never hardcode these values again.
+2. **Step-count text can invade the icon zone (Medium → FIXED)** — `cachedSteps + " steps"` at `"6x8"` scale 2 is 12px/char. "99999 steps" = 11 chars = 132px → x22–153 (fits). 6 digits = 144px → x16–160 (over the protected margin x154–160); 7 digits = 156px → x10–166 (over the bolt at x166–176). Fix: clamp the **displayed** value to `Math.min(cachedSteps, 99999)`. Only affects the draw, the health data is untouched.
+3. **`y` advance inside try/catch (Low → FIXED)** — `y += sh + gap` was inside each section's try. If the draw threw, `y` didn't advance and the next section drew over the failed one. Fix: move every `y += ...` outside the try (after the catch), so layout always progresses; the catch still restores `g.setFontAlign(0,-1)`.
+4. **Hardcoded gap count in `totalH` (Low → FIXED)** — `gap * 5` assumed weather always present. 5 elements (no weather) = 4 gaps, so `totalH` was 8px over-tall and content shifted up 4px. Fix: `gap * (hasWeather ? 5 : 4)`.
+5. **Event-driven charging icon not refreshed by redraw (Low → FIXED)** — the icon was drawn only at init and on charging events; any full redraw could leave it stale. Fix: call `drawChargingIcon()` at the end of `draw()`, outside the outer try/catch (it clears its own zone with `g.theme.bg` then redraws the bolt iff charging, so it's idempotent and ~1 tiny rect per minute).
+6. **`onStep` storage churn (Note → FIXED)** — `onStep` read `Bangle.getHealthStatus("day").steps` on **every** pedometer event (1.6+/sec while walking). Fix: throttle with `lastStepRead` to one read per second. Keeps the displayed value fresh for the minute-aligned redraw without hammering storage.
+
+### g.reset() — the resolved contradiction
+Earlier sections (15/19) warned to never call `g.reset()` in `draw()`. The review concluded the opposite: **`g.reset()` as the first line of `draw()` is correct** (Discussion #1800: widgets mutate global graphics state and leak it into apps — the v0.52 red-background was exactly this, `widbat` leaving `bgColor` poisoned at <20% battery). It is cheap on this firmware and is the structural guard for the whole class of widget-state-pollution bugs. Any future "optimization" that removes it must be proven safe first.
+
+### Still open (needs on-device confirmation, not applied)
+- None of the v0.55 items are visual; remaining candidates from the review were rejected as net-negative (full partial-redraw diffing adds more code + state than the ~10KB SPI/min full-redraw it would save).
 
 ---
 

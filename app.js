@@ -11,6 +11,7 @@
   let cachedWeekNum = -1;
   let cachedWeekKey = "";
   let cachedSteps = 0;
+  let lastStepRead = 0;
 
   let W = g.getWidth(), H = g.getHeight();
   let cx = W >> 1;
@@ -18,6 +19,12 @@
   let bh = 7;
   let th = g.setFont("6x8", 4).getFontHeight();
   let sh = g.setFont("6x8", 2).getFontHeight();
+  let appTop = 24, appH = H - 24;
+
+  function cacheAppRect() {
+    appTop = Bangle.appRect ? Math.max(Bangle.appRect.y, 24) : 24;
+    appH = Bangle.appRect ? Math.min(Bangle.appRect.h, H - 24) : H - 24;
+  }
 
   function queueDraw() {
     if (drawTimeout) clearTimeout(drawTimeout);
@@ -51,6 +58,9 @@
   }
 
   function onStep() {
+    let now = Date.now();
+    if (now - lastStepRead < 1000) return;
+    lastStepRead = now;
     try { cachedSteps = Bangle.getHealthStatus("day").steps || 0; } catch(e) {}
   }
 
@@ -108,9 +118,10 @@
   }
 
   function drawChargingIcon() {
-    let cx2 = W - 12, cy2 = 166;
+    let appBottom = appTop + appH;
+    let cx2 = W - 12, cy2 = appBottom - 10;
     g.setColor(g.theme.bg);
-    g.fillRect(W - 22, 158, W, 175);
+    g.fillRect(W - 22, appBottom - 18, W, appBottom - 1);
     if (charging) {
       g.setColor(0xFE60);
       g.fillCircle(cx2, cy2 - 3, 3);
@@ -122,41 +133,40 @@
   function draw() {
     try {
       g.reset();
-      let appTop = Bangle.appRect ? Math.max(Bangle.appRect.y, 24) : 24;
-      let appH = Bangle.appRect ? Math.min(Bangle.appRect.h, H - 24) : H - 24;
       let date = new Date();
       let w = getWeather();
       let hasWeather = w !== null;
-      let totalH = th + sh + sh + bh + (hasWeather ? sh : 0) + sh + gap * 5;
+      let appBottom = appTop + appH;
+      let totalH = th + sh + sh + bh + (hasWeather ? sh : 0) + sh + gap * (hasWeather ? 5 : 4);
       let y = appTop + (appH - totalH) / 2;
       g.setFontAlign(0, -1);
       g.setColor(g.theme.fg);
       g.setBgColor(g.theme.bg);
-      g.clearRect(0, appTop, W - 1, 157);
-      g.clearRect(0, 158, W - 22, 175);
+      g.clearRect(0, appTop, W - 1, appBottom - 19);
+      g.clearRect(0, appBottom - 18, W - 23, appBottom - 1);
       try {
         g.setFont("6x8", 4);
         g.drawString(lc.time(date, 1), cx, y, true);
-        y += th + gap;
       } catch(e) {}
+      y += th + gap;
       try {
         g.setFont("6x8", 2);
         let dateStr = lc.dow(date, 1) + " " + lc.date(date, 1);
         if (g.stringWidth(dateStr) > W - 10) dateStr = lc.date(date, 1);
         if (g.stringWidth(dateStr) > W - 10) dateStr = lc.dow(date, 1);
         g.drawString(dateStr, cx, y, true);
-        y += sh + gap;
       } catch(e) { g.setFontAlign(0, -1); }
+      y += sh + gap;
       try {
         g.setFont("6x8", 2);
         g.drawString("CW " + getWeekNumber(date), cx, y, true);
-        y += sh + gap;
       } catch(e) { g.setFontAlign(0, -1); }
+      y += sh + gap;
       try {
         g.setFont("6x8", 2);
         drawBatteryBar(y, Math.round(E.getBattery() / 10));
-        y += bh + gap;
       } catch(e) {}
+      y += bh + gap;
       try {
         if (hasWeather) {
           if (w.code !== undefined) drawWeatherIcon(cx - 24, y + 8, w.code);
@@ -164,14 +174,15 @@
           g.setFont("6x8", 2);
           g.drawString(Math.round(w.temp - 273.15) + "\u00B0C", cx - 11, y, true);
           g.setFontAlign(0, -1);
-          y += sh + gap;
         }
       } catch(e) { g.setFontAlign(0, -1); }
+      if (hasWeather) y += sh + gap;
       try {
         g.setFont("6x8", 2);
-        g.drawString(cachedSteps + " steps", cx, y, true);
+        g.drawString(Math.min(cachedSteps, 99999) + " steps", cx, y, true);
       } catch(e) {}
     } catch(e) {}
+    drawChargingIcon();
     queueDraw();
   }
 
@@ -191,6 +202,7 @@
     if (Bangle.removeListener) Bangle.removeListener('lcdPower', onLcdPower);
     if (Bangle.removeListener) Bangle.removeListener('step', onStep);
   }, redraw:draw});
+  cacheAppRect();
   g.reset();
   if (Bangle.appRect) g.clearRect(Bangle.appRect);
   Bangle.loadWidgets();
